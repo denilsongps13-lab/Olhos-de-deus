@@ -14,6 +14,9 @@ if (Test-Path dist) { Remove-Item dist -Recurse -Force }
 if (Test-Path build/pyinstaller) { Remove-Item build/pyinstaller -Recurse -Force }
 
 Write-Host 'Building desktop executable...'
+# PyInstaller already ships hooks for PySide6. Avoid --collect-all PySide6 because
+# it pulls optional Qt modules that the desktop app never imports and makes the
+# installer unnecessarily large and slow to compress.
 python -m PyInstaller `
   --noconfirm `
   --clean `
@@ -22,7 +25,6 @@ python -m PyInstaller `
   --name OlhosDeDeus `
   --icon build/OlhosDeDeus.ico `
   --workpath build/pyinstaller `
-  --collect-all PySide6 `
   olhos_de_deus/desktop_entry.py
 
 $env:QT_QPA_PLATFORM = 'offscreen'
