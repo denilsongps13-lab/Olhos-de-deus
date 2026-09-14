@@ -4,18 +4,44 @@ Central modular para agentes de IA, automacao, analise de codigo, QA e workflows
 
 ## Estado
 
-Versao nativa atual: **0.4.0**.
+Versao atual: **0.5.0**.
 
 Ja existe:
+- aplicativo desktop nativo para Windows com PySide6;
+- dashboard escuro/neon com nucleo visual animado;
+- central de missoes ligada ao orquestrador;
+- telas das sete integracoes, System Doctor, logs e configuracoes;
+- persistencia local SQLite em `%LOCALAPPDATA%\OlhosDeDeus`;
+- suporte a bandeja do Windows e splash screen;
+- build com PyInstaller e instalador com Inno Setup;
 - orquestrador de missoes com estado e evidencia;
-- planejador e roteador de agentes;
-- gate final de QA;
-- manifesto dos 7 projetos upstream;
-- bootstrap seguro para clonar/atualizar os 7 repositorios em `external/`;
-- adapters funcionais para as sete fases;
-- comando `doctor` para readiness das integracoes;
-- comando `phase` para consultar ou executar cada integracao;
-- CLI instalavel e testes automatizados em GitHub Actions.
+- planejador, roteador de agentes e Guardian QA;
+- bootstrap seguro dos sete projetos externos;
+- CLI e testes automatizados em Linux/Windows.
+
+## Windows
+
+O fluxo de entrega gera o artefato **OlhosDeDeus-Windows**, contendo:
+
+- `OlhosDeDeus-Setup.exe`
+- `SHA256SUMS.txt`
+
+Depois de instalado, o uso normal acontece pela interface grafica, sem precisar abrir PowerShell ou CMD. O instalador cria atalhos e inclui o runtime Python necessario dentro do aplicativo empacotado.
+
+Dados gravaveis nao ficam em `Program Files`. Banco, logs, cache, configuracoes e clones externos ficam em:
+
+```text
+%LOCALAPPDATA%\OlhosDeDeus
+```
+
+Detalhes de build e instalacao: `docs/WINDOWS.md`.
+
+Para desenvolvimento local:
+
+```powershell
+python -m pip install -e '.[dev,desktop]'
+olhos-de-deus-desktop
+```
 
 ## As sete fases
 
@@ -27,7 +53,9 @@ Ja existe:
 6. Agency Agents — catalogo pesquisavel de agentes especializados.
 7. Artemis — adapter CLI para automacao/testes Android autorizados.
 
-Detalhes e requisitos de runtime: `docs/SEVEN_PHASES.md`.
+A interface mostra o estado real. Se um runtime, servico ou dispositivo nao existir, ele aparece como `PENDING`, `INSTALLED` ou offline; a tela nao simula sucesso.
+
+Detalhes das integracoes: `docs/SEVEN_PHASES.md`.
 
 ## Projetos upstream
 
@@ -39,13 +67,13 @@ Detalhes e requisitos de runtime: `docs/SEVEN_PHASES.md`.
 6. msitarzewski/agency-agents (`main`, MIT)
 7. google/artemis (`main`, Apache-2.0)
 
-## Instalar
+## CLI
+
+Instalar o nucleo para desenvolvimento:
 
 ```bash
 python -m pip install -e '.[dev]'
 ```
-
-## Usar
 
 Preparar os repositorios externos:
 
@@ -71,30 +99,17 @@ olhos-de-deus phase agency-agents
 olhos-de-deus phase artemis "Open Settings"
 ```
 
-Exemplos de execucao real:
-
-```bash
-olhos-de-deus phase graphify . --execute
-olhos-de-deus phase spec-kit . --integration codex --execute
-olhos-de-deus phase comfyui --workflow workflow-api.json --execute
-olhos-de-deus phase artemis "Open Settings and report battery level" --profile flash --execute
-```
-
-Executar uma missao no nucleo:
-
-```bash
-olhos-de-deus run "Analisar erro no repositorio"
-```
-
 ## Estrutura
 
 - `olhos_de_deus/` — nucleo executavel, CLI e adapters
+- `olhos_de_deus/desktop/` — interface Windows, controller e persistencia
+- `packaging/windows/` — build do executavel e geracao do icone
+- `installer/` — projeto do instalador Inno Setup
 - `sources/` — manifesto, origem e licencas dos projetos estudados
-- `external/` — clones locais gerados pelo bootstrap; nao entram no Git
+- `external/` — clones locais; nao entram no Git
 - `tests/` — validacao automatizada
-- `docs/` — arquitetura, analises e plano de integracao
-- `core/` — documentacao arquitetural legada da fase inicial
+- `docs/` — arquitetura, integracoes e operacao
 
 ## Regra de integracao
 
-Nada e considerado integrado apenas por estar listado. Cada componente externo precisa de adapter, teste e limite de falha independente. Codigo de terceiros so entra no nucleo quando a licenca permitir e as atribuicoes forem preservadas.
+Nada e considerado integrado apenas por estar listado. Cada componente externo precisa de adapter, teste e limite de falha independente. Codigo de terceiros so entra no nucleo quando a licenca permitir e as atribuicoes forem preservadas. ComfyUI permanece isolado como servico externo devido a GPL-3.0.
