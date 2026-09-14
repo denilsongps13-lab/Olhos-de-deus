@@ -4,16 +4,19 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "olhos-de-deus"
-version = "0.4.0"
-description = "Orquestrador modular de agentes, workflows e verificacao do Olhos de Deus"
+version = "0.5.0"
+description = "Central modular de agentes, workflows, QA e automacao do Olhos de Deus"
 requires-python = ">=3.12"
 dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest>=8.3"]
+desktop = ["PySide6>=6.8,<7"]
+build = ["pyinstaller>=6.11", "pillow>=11.0"]
 
 [project.scripts]
 olhos-de-deus = "olhos_de_deus.cli:main"
+olhos-de-deus-desktop = "olhos_de_deus.desktop.app:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -4,4 +4,8 @@ __pycache__/
 .venv/
 venv/
 external/
+dist/
+build/
+installer/output/
+*.spec
 .DS_Store
