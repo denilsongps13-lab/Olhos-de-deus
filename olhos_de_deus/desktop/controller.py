@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import time
 from dataclasses import asdict
 from pathlib import Path
@@ -149,47 +150,118 @@ class DesktopController:
         )
         return payload
 
-    def phase_preview(self, name: str, **kwargs: Any) -> dict[str, Any]:
+    @staticmethod
+    def _completed_payload(result: subprocess.CompletedProcess[str]) -> dict[str, Any]:
+        return {
+            "returncode": result.returncode,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+        }
+
+    def run_phase(self, name: str, *, execute: bool = False, **kwargs: Any) -> dict[str, Any]:
         hub = self.integration_hub()
         adapter = hub.adapter(name)
+        started = time.perf_counter()
+        try:
+            if name == "graphify":
+                target = kwargs.get("target", ".")
+                result = adapter.run(target, dry_run=not execute)
+                payload = (
+                    {"phase": 1, "name": name, "execute": False, "command": list(result)}
+                    if isinstance(result, tuple)
+                    else {"phase": 1, "name": name, "execute": True, **self._completed_payload(result)}
+                )
+            elif name == "comfyui":
+                workflow_path = str(kwargs.get("workflow_path", "")).strip()
+                if workflow_path:
+                    path = Path(workflow_path).expanduser().resolve()
+                    workflow = json.loads(path.read_text(encoding="utf-8"))
+                    if execute:
+                        payload = {
+                            "phase": 2,
+                            "name": name,
+                            "execute": True,
+                            "workflow": str(path),
+                            "response": adapter.queue_prompt(workflow),
+                        }
+                    else:
+                        payload = {
+                            "phase": 2,
+                            "name": name,
+                            "execute": False,
+                            "workflow": str(path),
+                            "nodes": len(workflow),
+                            "endpoint": adapter.endpoint,
+                        }
+                else:
+                    payload = adapter.report(probe_services=bool(kwargs.get("probe", True))).to_dict()
+            elif name == "spec-kit":
+                target = kwargs.get("target", ".")
+                integration = str(kwargs.get("integration", "copilot"))
+                result = adapter.init_project(target, integration=integration, dry_run=not execute)
+                payload = (
+                    {
+                        "phase": 3,
+                        "name": name,
+                        "execute": False,
+                        "target": str(Path(target).expanduser().resolve()),
+                        "command": list(result),
+                    }
+                    if isinstance(result, tuple)
+                    else {"phase": 3, "name": name, "execute": True, **self._completed_payload(result)}
+                )
+            elif name == "qa-skills":
+                skill = str(kwargs.get("skill", "")).strip()
+                payload = (
+                    {"phase": 4, "name": name, "skill": skill, "content": adapter.load_skill(skill)}
+                    if skill
+                    else {"phase": 4, "name": name, "skills": list(adapter.list_skills())}
+                )
+            elif name == "i-have-adhd":
+                payload = {"phase": 5, "name": name, "rules": adapter.load_rules()}
+            elif name == "agency-agents":
+                query = str(kwargs.get("query", "")).strip()
+                if query:
+                    path = adapter.find_agent(query)
+                    payload = {
+                        "phase": 6,
+                        "name": name,
+                        "agent": path.stem,
+                        "path": str(path),
+                        "content": path.read_text(encoding="utf-8"),
+                    }
+                else:
+                    payload = {"phase": 6, "name": name, "agents": list(adapter.list_agents())}
+            elif name == "artemis":
+                task = str(kwargs.get("task", "Open Settings"))
+                profile = str(kwargs.get("profile", "flash"))
+                result = adapter.run(task, profile=profile, dry_run=not execute)
+                payload = (
+                    {"phase": 7, "name": name, "execute": False, "command": list(result)}
+                    if isinstance(result, tuple)
+                    else {"phase": 7, "name": name, "execute": True, **self._completed_payload(result)}
+                )
+            else:
+                raise KeyError(f"Unknown integration: {name}")
 
-        if name == "graphify":
-            target = kwargs.get("target", ".")
-            return {"phase": 1, "name": name, "execute": False, "command": adapter.run(target, dry_run=True)}
-        if name == "comfyui":
-            return adapter.report(probe_services=bool(kwargs.get("probe", False))).to_dict()
-        if name == "spec-kit":
-            target = kwargs.get("target", ".")
-            integration = kwargs.get("integration", "copilot")
-            return {
-                "phase": 3,
-                "name": name,
-                "execute": False,
-                "target": str(Path(target).expanduser().resolve()),
-                "command": adapter.init_project(target, integration=integration, dry_run=True),
-            }
-        if name == "qa-skills":
-            return {"phase": 4, "name": name, "skills": adapter.list_skills()}
-        if name == "i-have-adhd":
-            return {"phase": 5, "name": name, "rules": adapter.load_rules()}
-        if name == "agency-agents":
-            query = str(kwargs.get("query", "")).strip()
-            if query:
-                path = adapter.find_agent(query)
-                return {"phase": 6, "name": name, "agent": path.stem, "path": str(path)}
-            return {"phase": 6, "name": name, "agents": adapter.list_agents()}
-        if name == "artemis":
-            task = str(kwargs.get("task", "Open Settings"))
-            profile = str(kwargs.get("profile", "flash"))
-            return {"phase": 7, "name": name, "execute": False, "command": adapter.run(task, profile=profile, dry_run=True)}
-        raise KeyError(f"Unknown integration: {name}")
+            duration_ms = int((time.perf_counter() - started) * 1000)
+            payload["duration_ms"] = duration_ms
+            self.storage.log(
+                name.upper(),
+                "Phase executed" if execute else "Phase checked",
+                phase=name,
+                payload={"execute": execute, "duration_ms": duration_ms},
+            )
+            return payload
+        except Exception as exc:
+            self.storage.log(name.upper(), str(exc), level="ERROR", phase=name)
+            raise
+
+    def phase_preview(self, name: str, **kwargs: Any) -> dict[str, Any]:
+        return self.run_phase(name, execute=False, **kwargs)
 
     def queue_comfyui_workflow(self, workflow_path: str | Path) -> Any:
-        path = Path(workflow_path).expanduser().resolve()
-        workflow = json.loads(path.read_text(encoding="utf-8"))
-        result = self.integration_hub().adapter("comfyui").queue_prompt(workflow)
-        self.storage.log("COMFYUI", "Workflow queued", phase="comfyui", payload={"workflow": str(path)})
-        return result
+        return self.run_phase("comfyui", execute=True, workflow_path=workflow_path)
 
     def save_settings(
         self,
