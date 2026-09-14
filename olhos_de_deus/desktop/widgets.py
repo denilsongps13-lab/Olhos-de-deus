@@ -49,7 +49,7 @@ class AnimatedCoreWidget(QWidget):
     def paintEvent(self, event) -> None:  # noqa: N802 - Qt API
         del event
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.fillRect(self.rect(), QColor(7, 16, 24))
 
         width = float(self.width())
@@ -65,7 +65,7 @@ class AnimatedCoreWidget(QWidget):
         glow.setColorAt(0.0, QColor(primary.red(), primary.green(), primary.blue(), 80))
         glow.setColorAt(0.45, QColor(secondary.red(), secondary.green(), secondary.blue(), 35))
         glow.setColorAt(1.0, QColor(7, 16, 24, 0))
-        painter.setPen(Qt.NoPen)
+        painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(glow)
         painter.drawEllipse(center, radius * 1.6, radius * 1.15)
 
@@ -85,7 +85,7 @@ class AnimatedCoreWidget(QWidget):
             QPointF(center.x() - eye_width * 0.25, center.y() + eye_height),
             left,
         )
-        painter.setBrush(Qt.NoBrush)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.setPen(QPen(primary, 3.0))
         painter.drawPath(eye)
 
@@ -98,7 +98,7 @@ class AnimatedCoreWidget(QWidget):
         pupil_gradient.setColorAt(0.25, primary)
         pupil_gradient.setColorAt(1.0, QColor(5, 26, 42, 230))
         painter.setBrush(pupil_gradient)
-        painter.setPen(Qt.NoPen)
+        painter.setPen(Qt.PenStyle.NoPen)
         painter.drawEllipse(center, pupil_radius, pupil_radius)
 
         node_count = 16 if self._mode == "working" else 11
@@ -119,21 +119,21 @@ class AnimatedCoreWidget(QWidget):
             painter.drawLine(point, nodes[(index + 3) % node_count])
             painter.drawLine(point, nodes[(index + 5) % node_count])
 
-        painter.setPen(Qt.NoPen)
+        painter.setPen(Qt.PenStyle.NoPen)
         for index, point in enumerate(nodes):
             intensity = int(150 + 95 * (0.5 + 0.5 * math.sin(elapsed * 2.2 * speed + index)))
             painter.setBrush(QColor(primary.red(), primary.green(), primary.blue(), intensity))
             painter.drawEllipse(point, 2.5, 2.5)
 
         painter.setPen(QColor(110, 180, 200))
-        painter.setFont(QFont("Segoe UI", 9, QFont.Medium))
+        painter.setFont(QFont("Segoe UI", 9, QFont.Weight.Medium))
         label = {
             "idle": "NÚCLEO EM ESPERA",
             "working": "NÚCLEO PROCESSANDO",
             "success": "MISSÃO CONCLUÍDA",
             "error": "ATENÇÃO: FALHA DETECTADA",
         }[self._mode]
-        painter.drawText(QRectF(0, height - 34, width, 24), Qt.AlignCenter, label)
+        painter.drawText(QRectF(0, height - 34, width, 24), Qt.AlignmentFlag.AlignCenter, label)
 
 
 class StatCard(QFrame):
@@ -184,7 +184,7 @@ class IntegrationCard(QFrame):
         self.button.clicked.connect(lambda: self.action_requested.emit(self.name))
         layout.addLayout(header)
         layout.addWidget(self.detail)
-        layout.addWidget(self.button, 0, Qt.AlignLeft)
+        layout.addWidget(self.button, 0, Qt.AlignmentFlag.AlignLeft)
 
     def update_report(self, report: dict) -> None:
         operational = bool(report.get("operational"))
