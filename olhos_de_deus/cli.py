@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 from dataclasses import asdict
+from pathlib import Path
 
 from .bootstrap import bootstrap_sources
 from .integrations import IntegrationHub
@@ -12,6 +13,10 @@ from .sources import load_sources
 
 def _json(value: object) -> None:
     print(json.dumps(value, ensure_ascii=False, indent=2))
+
+
+def _add_external_root(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--external-root", default="external", help="Diretorio dos repositorios externos")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -35,7 +40,122 @@ def build_parser() -> argparse.ArgumentParser:
     doctor.add_argument("--probe-services", action="store_true", help="Testa servicos de rede configurados")
     doctor.add_argument("--json", action="store_true", dest="as_json")
     doctor.add_argument("--strict", action="store_true", help="Retorna erro se alguma integracao nao estiver operacional")
+
+    phase = sub.add_parser("phase", help="Executa ou consulta uma das sete fases")
+    phases = phase.add_subparsers(dest="phase_name", required=True)
+
+    graphify = phases.add_parser("graphify", help="Fase 1: inteligencia estrutural")
+    graphify.add_argument("target", nargs="?", default=".")
+    graphify.add_argument("--execute", action="store_true")
+    _add_external_root(graphify)
+
+    comfyui = phases.add_parser("comfyui", help="Fase 2: workflow visual por API")
+    comfyui.add_argument("--url", default=None, help="URL da API do ComfyUI")
+    comfyui.add_argument("--workflow", help="Arquivo JSON em formato de API do ComfyUI")
+    comfyui.add_argument("--probe", action="store_true", help="Testa se a API esta acessivel")
+    comfyui.add_argument("--execute", action="store_true", help="Envia o workflow para a API")
+    _add_external_root(comfyui)
+
+    speckit = phases.add_parser("spec-kit", help="Fase 3: especificacao orientada a plano")
+    speckit.add_argument("target", nargs="?", default=".")
+    speckit.add_argument("--integration", default="copilot")
+    speckit.add_argument("--execute", action="store_true")
+    _add_external_root(speckit)
+
+    qa = phases.add_parser("qa-skills", help="Fase 4: skills de QA")
+    qa.add_argument("skill", nargs="?", help="Nome da skill; vazio lista as disponiveis")
+    _add_external_root(qa)
+
+    output = phases.add_parser("i-have-adhd", help="Fase 5: perfil operacional de saida")
+    _add_external_root(output)
+
+    agency = phases.add_parser("agency-agents", help="Fase 6: catalogo de agentes")
+    agency.add_argument("query", nargs="?", help="Busca um agente; vazio lista o catalogo")
+    _add_external_root(agency)
+
+    artemis = phases.add_parser("artemis", help="Fase 7: operacao Android")
+    artemis.add_argument("task", help="Tarefa a ser executada no dispositivo")
+    artemis.add_argument("--profile", choices=("flash", "pro"), default="flash")
+    artemis.add_argument("--execute", action="store_true")
+    _add_external_root(artemis)
     return parser
+
+
+def _run_phase(args: argparse.Namespace) -> None:
+    comfyui_url = getattr(args, "url", None)
+    hub = IntegrationHub(args.external_root, comfyui_url=comfyui_url)
+
+    if args.phase_name == "graphify":
+        adapter = hub.adapter("graphify")
+        result = adapter.run(args.target, dry_run=not args.execute)
+        if isinstance(result, tuple):
+            _json({"phase": 1, "execute": False, "command": result})
+        else:
+            _json({"phase": 1, "execute": True, "returncode": result.returncode, "stdout": result.stdout})
+        return
+
+    if args.phase_name == "comfyui":
+        adapter = hub.adapter("comfyui")
+        if args.workflow:
+            workflow_path = Path(args.workflow).expanduser().resolve()
+            workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
+            if not args.execute:
+                _json(
+                    {
+                        "phase": 2,
+                        "execute": False,
+                        "endpoint": adapter.endpoint,
+                        "workflow": str(workflow_path),
+                        "nodes": len(workflow),
+                    }
+                )
+                return
+            _json(adapter.queue_prompt(workflow))
+            return
+        _json(adapter.report(probe_services=args.probe).to_dict())
+        return
+
+    if args.phase_name == "spec-kit":
+        adapter = hub.adapter("spec-kit")
+        result = adapter.init_project(args.target, integration=args.integration, dry_run=not args.execute)
+        if isinstance(result, tuple):
+            _json({"phase": 3, "execute": False, "command": result, "target": str(Path(args.target).resolve())})
+        else:
+            _json({"phase": 3, "execute": True, "returncode": result.returncode, "stdout": result.stdout})
+        return
+
+    if args.phase_name == "qa-skills":
+        adapter = hub.adapter("qa-skills")
+        if args.skill:
+            print(adapter.load_skill(args.skill))
+        else:
+            _json({"phase": 4, "skills": adapter.list_skills()})
+        return
+
+    if args.phase_name == "i-have-adhd":
+        adapter = hub.adapter("i-have-adhd")
+        print(adapter.load_rules())
+        return
+
+    if args.phase_name == "agency-agents":
+        adapter = hub.adapter("agency-agents")
+        if args.query:
+            path = adapter.find_agent(args.query)
+            _json({"phase": 6, "agent": path.stem, "path": str(path)})
+        else:
+            _json({"phase": 6, "agents": adapter.list_agents()})
+        return
+
+    if args.phase_name == "artemis":
+        adapter = hub.adapter("artemis")
+        result = adapter.run(args.task, profile=args.profile, dry_run=not args.execute)
+        if isinstance(result, tuple):
+            _json({"phase": 7, "execute": False, "command": result})
+        else:
+            _json({"phase": 7, "execute": True, "returncode": result.returncode, "stdout": result.stdout})
+        return
+
+    raise SystemExit(2)
 
 
 def main() -> None:
@@ -77,6 +197,10 @@ def main() -> None:
                 print(f"{item.phase}. {item.name}: {state} - {item.detail}")
         if args.strict and not all(item.operational for item in reports):
             raise SystemExit(1)
+        return
+
+    if args.command == "phase":
+        _run_phase(args)
         return
 
     raise SystemExit(2)
