@@ -164,7 +164,8 @@ class DesktopStorage:
         result: list[dict[str, Any]] = []
         for row in rows:
             item = dict(row)
-            item["result"] = json.loads(item.pop("result_json")) if item["result_json"] else None
+            raw_result = item.pop("result_json")
+            item["result"] = json.loads(raw_result) if raw_result else None
             result.append(item)
         return result
 
@@ -180,7 +181,8 @@ class DesktopStorage:
         result: list[dict[str, Any]] = []
         for row in rows:
             item = dict(row)
-            item["payload"] = json.loads(item.pop("payload_json")) if item["payload_json"] else None
+            raw_payload = item.pop("payload_json")
+            item["payload"] = json.loads(raw_payload) if raw_payload else None
             result.append(item)
         return result
 
