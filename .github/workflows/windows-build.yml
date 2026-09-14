@@ -1,0 +1,71 @@
+name: Olhos de Deus Windows
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "olhos_de_deus/**"
+      - "packaging/windows/**"
+      - "installer/**"
+      - "pyproject.toml"
+      - "setup.cfg"
+      - ".github/workflows/windows-build.yml"
+  push:
+    branches: [main, "develop/**"]
+    tags: ["v*"]
+    paths:
+      - "olhos_de_deus/**"
+      - "packaging/windows/**"
+      - "installer/**"
+      - "pyproject.toml"
+      - "setup.cfg"
+      - ".github/workflows/windows-build.yml"
+
+jobs:
+  windows-build:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Build executable and run smoke test
+        shell: pwsh
+        run: ./packaging/windows/build.ps1
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = (Get-Command iscc.exe -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) {
+            $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          }
+          if (-not (Test-Path $iscc)) {
+            throw "ISCC.exe not found"
+          }
+          & $iscc installer\OlhosDeDeus.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: SHA256 installer
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash installer\output\OlhosDeDeus-Setup.exe -Algorithm SHA256).Hash.ToLower()
+          "$hash  OlhosDeDeus-Setup.exe" | Set-Content installer\output\SHA256SUMS.txt -Encoding ascii
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: OlhosDeDeus-Windows
+          path: |
+            installer/output/OlhosDeDeus-Setup.exe
+            installer/output/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
