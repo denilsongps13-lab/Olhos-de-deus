@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from typing import Sequence
 
@@ -18,9 +17,9 @@ from .window import OlhosDeDeusWindow
 
 def build_icon(size: int = 128) -> QIcon:
     pixmap = QPixmap(size, size)
-    pixmap.fill(Qt.transparent)
+    pixmap.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.Antialiasing)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
     center = size / 2.0
     path = QPainterPath()
     path.moveTo(size * 0.12, center)
@@ -33,7 +32,7 @@ def build_icon(size: int = 128) -> QIcon:
     painter.setBrush(QColor(18, 118, 180))
     painter.drawEllipse(int(size * 0.37), int(size * 0.37), int(size * 0.26), int(size * 0.26))
     painter.setBrush(QColor(224, 252, 255))
-    painter.setPen(Qt.NoPen)
+    painter.setPen(Qt.PenStyle.NoPen)
     painter.drawEllipse(int(size * 0.47), int(size * 0.47), int(size * 0.06), int(size * 0.06))
     painter.end()
     return QIcon(pixmap)
@@ -43,7 +42,7 @@ def _splash(icon: QIcon) -> QSplashScreen:
     pixmap = QPixmap(620, 320)
     pixmap.fill(QColor(7, 16, 24))
     painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.Antialiasing)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
     painter.setPen(QColor(100, 234, 255))
     painter.drawPixmap(250, 40, 120, 120, icon.pixmap(120, 120))
     painter.setPen(QColor(225, 250, 255))
@@ -51,17 +50,17 @@ def _splash(icon: QIcon) -> QSplashScreen:
     font.setPointSize(24)
     font.setBold(True)
     painter.setFont(font)
-    painter.drawText(0, 185, 620, 50, Qt.AlignCenter, "OLHOS DE DEUS")
+    painter.drawText(0, 185, 620, 50, Qt.AlignmentFlag.AlignCenter, "OLHOS DE DEUS")
     font.setPointSize(10)
     font.setBold(False)
     painter.setFont(font)
     painter.setPen(QColor(105, 165, 185))
-    painter.drawText(0, 230, 620, 30, Qt.AlignCenter, "CENTRAL DE INTELIGÊNCIA ARTIFICIAL")
+    painter.drawText(0, 230, 620, 30, Qt.AlignmentFlag.AlignCenter, "CENTRAL DE INTELIGÊNCIA ARTIFICIAL")
     painter.end()
     splash = QSplashScreen(pixmap)
     splash.showMessage(
         "Inicializando núcleo · carregando banco · verificando integrações...",
-        Qt.AlignBottom | Qt.AlignHCenter,
+        Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter,
         QColor(110, 220, 245),
     )
     return splash
@@ -69,7 +68,7 @@ def _splash(icon: QIcon) -> QSplashScreen:
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="olhos-de-deus-desktop", add_help=True)
-    parser.add_argument("--smoke-test", action="store_true", help="Inicializa controller/Qt e encerra com status 0")
+    parser.add_argument("--smoke-test", action="store_true", help="Inicializa controller/Qt, renderiza a janela e encerra")
     return parser
 
 
@@ -90,6 +89,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         dashboard = controller.dashboard()
         if dashboard.get("total_integrations") != 7:
             return 2
+        window = OlhosDeDeusWindow(controller)
+        window.setWindowIcon(icon)
+        window.show()
+        app.processEvents()
+        window.core_animation.repaint()
+        app.processEvents()
+        window.close()
+        app.processEvents()
         return 0
 
     splash = _splash(icon)
@@ -117,7 +124,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             tray.showMessage(
                 "Olhos de Deus",
                 f"Núcleo online · {data['operational']}/{data['total_integrations']} integrações prontas",
-                QSystemTrayIcon.Information,
+                QSystemTrayIcon.MessageIcon.Information,
                 5000,
             )
 
@@ -127,7 +134,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             tray.showMessage(
                 "System Doctor",
                 f"{ready}/{len(reports)} integrações operacionais",
-                QSystemTrayIcon.Information,
+                QSystemTrayIcon.MessageIcon.Information,
                 5000,
             )
 
@@ -136,7 +143,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         exit_action.triggered.connect(app.quit)
         tray.setContextMenu(menu)
         tray.activated.connect(
-            lambda reason: open_action.trigger() if reason == QSystemTrayIcon.DoubleClick else None
+            lambda reason: open_action.trigger()
+            if reason == QSystemTrayIcon.ActivationReason.DoubleClick
+            else None
         )
         tray.show()
         window.set_tray_available(True)
