@@ -19,5 +19,7 @@ jobs:
         run: python -m olhos_de_deus sources --json
       - name: Validate bootstrap plan
         run: python -m olhos_de_deus bootstrap --dry-run
+      - name: Validate seven-phase doctor
+        run: python -m olhos_de_deus doctor --json
       - name: Test
         run: pytest -q
