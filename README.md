@@ -4,7 +4,7 @@ Central modular para agentes de IA, automacao, analise de codigo, QA e workflows
 
 ## Estado
 
-Versao nativa atual: **0.3.0**.
+Versao nativa atual: **0.4.0**.
 
 Ja existe:
 - orquestrador de missoes com estado e evidencia;
@@ -14,6 +14,7 @@ Ja existe:
 - bootstrap seguro para clonar/atualizar os 7 repositorios em `external/`;
 - adapters funcionais para as sete fases;
 - comando `doctor` para readiness das integracoes;
+- comando `phase` para consultar ou executar cada integracao;
 - CLI instalavel e testes automatizados em GitHub Actions.
 
 ## As sete fases
@@ -46,46 +47,43 @@ python -m pip install -e '.[dev]'
 
 ## Usar
 
-Listar as fontes:
-
-```bash
-olhos-de-deus sources
-```
-
-Ver o bootstrap sem baixar nada:
-
-```bash
-olhos-de-deus bootstrap --dry-run
-```
-
-Baixar/atualizar todos os projetos externos:
+Preparar os repositorios externos:
 
 ```bash
 olhos-de-deus bootstrap
 ```
 
-Verificar as sete fases:
+Verificar o estado das sete fases:
 
 ```bash
 olhos-de-deus doctor
 ```
 
-Testar tambem servicos externos configurados:
+Executar/consultar cada fase. Por seguranca, as fases que executam ferramentas externas usam dry-run por padrao; adicione `--execute` somente quando quiser executar de verdade.
 
 ```bash
-olhos-de-deus doctor --probe-services
+olhos-de-deus phase graphify .
+olhos-de-deus phase comfyui --probe
+olhos-de-deus phase spec-kit .
+olhos-de-deus phase qa-skills
+olhos-de-deus phase i-have-adhd
+olhos-de-deus phase agency-agents
+olhos-de-deus phase artemis "Open Settings"
+```
+
+Exemplos de execucao real:
+
+```bash
+olhos-de-deus phase graphify . --execute
+olhos-de-deus phase spec-kit . --integration codex --execute
+olhos-de-deus phase comfyui --workflow workflow-api.json --execute
+olhos-de-deus phase artemis "Open Settings and report battery level" --profile flash --execute
 ```
 
 Executar uma missao no nucleo:
 
 ```bash
 olhos-de-deus run "Analisar erro no repositorio"
-```
-
-Tambem funciona por modulo:
-
-```bash
-python -m olhos_de_deus doctor --json
 ```
 
 ## Estrutura
