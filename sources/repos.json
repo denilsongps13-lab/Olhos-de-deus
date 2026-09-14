@@ -1,0 +1,12 @@
+{
+  "sources": [
+    {"name":"graphify","repo":"Graphify-Labs/graphify","ref":"v8","license":"Apache-2.0","role":"codebase-knowledge-graph"},
+    {"name":"comfyui","repo":"Comfy-Org/ComfyUI","ref":"master","license":"GPL-3.0","role":"workflow-architecture-reference"},
+    {"name":"spec-kit","repo":"github/spec-kit","ref":"main","license":"MIT","role":"spec-driven-development"},
+    {"name":"qa-skills","repo":"petrkindlmann/qa-skills","ref":"main","license":"MIT","role":"quality-and-testing-skills"},
+    {"name":"i-have-adhd","repo":"ayghri/i-have-adhd","ref":"main","license":"MIT","role":"operational-output-patterns"},
+    {"name":"agency-agents","repo":"msitarzewski/agency-agents","ref":"main","license":"MIT","role":"specialized-agent-patterns"},
+    {"name":"artemis","repo":"google/artemis","ref":"main","license":"Apache-2.0","role":"android-automation-and-testing"}
+  ],
+  "policy": "Study upstream projects first. Import code only when its license is compatible with the intended Olhos de Deus distribution and preserve required attribution. Mega Cerebro original remains untouched until the independent Olhos de Deus system is stable."
+}
