@@ -14,6 +14,11 @@ from .controller import DesktopController
 from .theme import APP_STYLESHEET
 from .window import OlhosDeDeusWindow
 
+# Qt can dispatch changeEvent while QMainWindow is still inside its base
+# constructor, before the instance initializer assigns _tray_available.
+# A class-level fallback prevents that early Windows event from crashing.
+OlhosDeDeusWindow._tray_available = False
+
 
 def build_icon(size: int = 128) -> QIcon:
     pixmap = QPixmap(size, size)
