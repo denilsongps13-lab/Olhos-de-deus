@@ -4,13 +4,14 @@ Central modular para agentes de IA, automacao, analise de codigo, QA e workflows
 
 ## Estado
 
-Versao atual: **0.5.0**.
+Versao atual: **0.6.0**.
 
 Ja existe:
 - aplicativo desktop nativo para Windows com PySide6;
 - dashboard escuro/neon com nucleo visual animado;
 - central de missoes ligada ao orquestrador;
 - telas das sete integracoes, System Doctor, logs e configuracoes;
+- **Ruflo como Fase 0 opcional / meta-harness**, sem substituir as sete fases;
 - persistencia local SQLite em `%LOCALAPPDATA%\OlhosDeDeus`;
 - suporte a bandeja do Windows e splash screen;
 - build com PyInstaller e instalador com Inno Setup;
@@ -43,6 +44,24 @@ python -m pip install -e '.[dev,desktop]'
 olhos-de-deus-desktop
 ```
 
+## Fase 0 — Ruflo
+
+O projeto `ruvnet/ruflo` entra como **meta-orquestrador opcional**. Ele fica por cima do Olhos de Deus para coordenar agentes, MCP, memoria e workflows quando configurado, mas **as sete fases continuam independentes**.
+
+O codigo do Ruflo nao e copiado para o nucleo. O adapter usa os comandos oficiais via `npx`, sem `shell=True`, e nunca instala nada silenciosamente.
+
+Comandos principais:
+
+```bash
+olhos-de-deus ruflo status --workspace .
+olhos-de-deus ruflo init --workspace .
+olhos-de-deus ruflo init --workspace . --execute
+olhos-de-deus ruflo mcp --workspace .
+olhos-de-deus doctor --with-ruflo --ruflo-workspace .
+```
+
+Detalhes: `docs/RUFLO_PHASE0.md`.
+
 ## As sete fases
 
 1. Graphify — inteligencia estrutural de codigo via CLI oficial.
@@ -59,6 +78,10 @@ Detalhes das integracoes: `docs/SEVEN_PHASES.md`.
 
 ## Projetos upstream
 
+Fase 0 opcional:
+- ruvnet/ruflo (`main`, MIT)
+
+Sete fases:
 1. Graphify-Labs/graphify (`v8`, Apache-2.0)
 2. Comfy-Org/ComfyUI (`master`, GPL-3.0)
 3. github/spec-kit (`main`, MIT)
@@ -87,6 +110,12 @@ Verificar o estado das sete fases:
 olhos-de-deus doctor
 ```
 
+Verificar as sete fases + Ruflo:
+
+```bash
+olhos-de-deus doctor --with-ruflo --ruflo-workspace .
+```
+
 Executar/consultar cada fase. Por seguranca, as fases que executam ferramentas externas usam dry-run por padrao; adicione `--execute` somente quando quiser executar de verdade.
 
 ```bash
@@ -102,6 +131,7 @@ olhos-de-deus phase artemis "Open Settings"
 ## Estrutura
 
 - `olhos_de_deus/` — nucleo executavel, CLI e adapters
+- `olhos_de_deus/ruflo.py` — adapter externo da Fase 0
 - `olhos_de_deus/desktop/` — interface Windows, controller e persistencia
 - `packaging/windows/` — build do executavel e geracao do icone
 - `installer/` — projeto do instalador Inno Setup
@@ -112,4 +142,4 @@ olhos-de-deus phase artemis "Open Settings"
 
 ## Regra de integracao
 
-Nada e considerado integrado apenas por estar listado. Cada componente externo precisa de adapter, teste e limite de falha independente. Codigo de terceiros so entra no nucleo quando a licenca permitir e as atribuicoes forem preservadas. ComfyUI permanece isolado como servico externo devido a GPL-3.0.
+Nada e considerado integrado apenas por estar listado. Cada componente externo precisa de adapter, teste e limite de falha independente. Codigo de terceiros so entra no nucleo quando a licenca permitir e as atribuicoes forem preservadas. ComfyUI permanece isolado como servico externo devido a GPL-3.0. Ruflo permanece opcional e externo ao nucleo, acionado pelos comandos oficiais via `npx`.
