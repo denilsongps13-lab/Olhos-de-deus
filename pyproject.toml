@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "olhos-de-deus"
-version = "0.6.1"
+version = "0.6.2"
 description = "Central modular de agentes, workflows, QA e automacao do Olhos de Deus"
 requires-python = ">=3.12"
 dependencies = []
