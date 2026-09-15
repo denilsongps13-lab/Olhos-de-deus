@@ -15,8 +15,6 @@ from .controller import DesktopController
 from .ruflo_panel import install_ruflo_dock
 from .theme import APP_STYLESHEET
 
-# Qt can dispatch changeEvent while QMainWindow is still inside its base
-# constructor, before the instance initializer assigns _tray_available.
 CockpitWindow._tray_available = False
 
 
@@ -108,7 +106,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         ruflo_dock = _wire_ruflo(window, controller)
         window.show()
         app.processEvents()
-        window.core_animation.repaint()
+        window.repaint()
         ruflo_dock.widget().refresh_status()
         window._refresh_dashboard()
         app.processEvents()
