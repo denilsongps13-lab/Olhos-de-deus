@@ -1,6 +1,7 @@
-from pathlib import Path
+import json
 
 import olhos_de_deus.ruflo as ruflo_module
+from olhos_de_deus.cli import _run_ruflo, build_parser
 from olhos_de_deus.ruflo import RufloAdapter
 
 
@@ -42,3 +43,30 @@ def test_ruflo_report_ready_after_workspace_initialized(tmp_path, monkeypatch):
     assert report.installed
     assert report.operational
     assert "workspace ready" in report.detail
+
+
+def test_ruflo_cli_init_is_dry_run_by_default(tmp_path, capsys):
+    args = build_parser().parse_args(["ruflo", "init", "--workspace", str(tmp_path)])
+    assert args.command == "ruflo"
+    assert args.ruflo_command == "init"
+    _run_ruflo(args)
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["phase"] == 0
+    assert payload["execute"] is False
+    assert payload["command"][-2:] == ["ruflo@latest", "init"]
+
+
+def test_doctor_can_include_ruflo_without_changing_seven_phase_hub(tmp_path):
+    args = build_parser().parse_args(
+        [
+            "doctor",
+            "--external-root",
+            str(tmp_path),
+            "--with-ruflo",
+            "--ruflo-workspace",
+            str(tmp_path),
+            "--json",
+        ]
+    )
+    assert args.with_ruflo is True
+    assert args.ruflo_workspace == str(tmp_path)
