@@ -107,7 +107,7 @@ def test_ruflo_swarm_dry_runs_do_not_need_node_or_network(tmp_path):
     status_command = adapter.swarm_status(dry_run=True)
     assert init_command[-2:] == ("--format", "json")
     assert "Analyze code" in start_command
-    assert status_command[-4:] == ("status", "--format", "json")
+    assert status_command[-4:] == ("swarm", "status", "--format", "json")
 
 
 def test_ruflo_cli_init_is_dry_run_by_default(tmp_path, capsys):
