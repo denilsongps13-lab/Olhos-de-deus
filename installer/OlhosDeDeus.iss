@@ -1,5 +1,5 @@
 #define MyAppName "Olho de Deus"
-#define MyAppVersion "0.7.0"
+#define MyAppVersion "0.7.1"
 #define MyAppPublisher "Olho de Deus"
 #define MyAppExeName "OlhosDeDeus.exe"
 
@@ -21,7 +21,7 @@ SolidCompression=yes
 WizardStyle=modern
 SetupIconFile=..\build\OlhosDeDeus.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
-VersionInfoVersion=0.7.0.0
+VersionInfoVersion=0.7.1.0
 VersionInfoDescription=Olho de Deus - Cockpit de Inteligência Artificial
 
 [Languages]
