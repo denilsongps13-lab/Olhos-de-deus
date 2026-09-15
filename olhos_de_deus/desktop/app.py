@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QApplication, QMenu, QSplashScreen, QSystemTrayIco
 from olhos_de_deus import __version__
 
 from .controller import DesktopController
+from .ruflo_panel import install_ruflo_dock
 from .theme import APP_STYLESHEET
 from .window import OlhosDeDeusWindow
 
@@ -94,11 +95,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         dashboard = controller.dashboard()
         if dashboard.get("total_integrations") != 7:
             return 2
+        if dashboard.get("ruflo", {}).get("phase") != 0:
+            return 3
         window = OlhosDeDeusWindow(controller)
         window.setWindowIcon(icon)
+        ruflo_dock = install_ruflo_dock(window, controller)
         window.show()
         app.processEvents()
         window.core_animation.repaint()
+        ruflo_dock.widget().refresh_status()
         app.processEvents()
         window.close()
         app.processEvents()
@@ -110,6 +115,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     window = OlhosDeDeusWindow(controller)
     window.setWindowIcon(icon)
+    ruflo_dock = install_ruflo_dock(window, controller)
 
     tray: QSystemTrayIcon | None = None
     if QSystemTrayIcon.isSystemTrayAvailable():
@@ -119,6 +125,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         open_action = menu.addAction("Abrir")
         status_action = menu.addAction("Status")
         doctor_action = menu.addAction("Doctor")
+        ruflo_action = menu.addAction("Ruflo · Fase 0")
         menu.addSeparator()
         exit_action = menu.addAction("Sair")
 
@@ -126,9 +133,10 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         def show_status() -> None:
             data = controller.dashboard()
+            ruflo_state = "READY" if data.get("ruflo", {}).get("operational") else "PENDING"
             tray.showMessage(
                 "Olhos de Deus",
-                f"Núcleo online · {data['operational']}/{data['total_integrations']} integrações prontas",
+                f"Núcleo online · {data['operational']}/{data['total_integrations']} fases prontas · Ruflo {ruflo_state}",
                 QSystemTrayIcon.MessageIcon.Information,
                 5000,
             )
@@ -138,13 +146,22 @@ def main(argv: Sequence[str] | None = None) -> int:
             ready = sum(bool(item["operational"]) for item in reports)
             tray.showMessage(
                 "System Doctor",
-                f"{ready}/{len(reports)} integrações operacionais",
+                f"{ready}/{len(reports)} módulos operacionais, incluindo a Fase 0",
                 QSystemTrayIcon.MessageIcon.Information,
                 5000,
             )
 
+        def show_ruflo() -> None:
+            window.showNormal()
+            window.raise_()
+            window.activateWindow()
+            ruflo_dock.show()
+            ruflo_dock.raise_()
+            ruflo_dock.widget().refresh_status()
+
         status_action.triggered.connect(show_status)
         doctor_action.triggered.connect(run_doctor)
+        ruflo_action.triggered.connect(show_ruflo)
         exit_action.triggered.connect(app.quit)
         tray.setContextMenu(menu)
         tray.activated.connect(
