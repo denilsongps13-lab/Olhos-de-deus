@@ -8,6 +8,7 @@ from pathlib import Path
 from .bootstrap import bootstrap_sources
 from .integrations import IntegrationHub
 from .orchestrator import Orchestrator
+from .ruflo import RufloAdapter
 from .sources import load_sources
 
 
@@ -40,6 +41,26 @@ def build_parser() -> argparse.ArgumentParser:
     doctor.add_argument("--probe-services", action="store_true", help="Testa servicos de rede configurados")
     doctor.add_argument("--json", action="store_true", dest="as_json")
     doctor.add_argument("--strict", action="store_true", help="Retorna erro se alguma integracao nao estiver operacional")
+    doctor.add_argument("--with-ruflo", action="store_true", help="Inclui o meta-harness Ruflo como fase 0")
+    doctor.add_argument("--ruflo-workspace", default=".", help="Workspace usado pelo Ruflo")
+
+    ruflo = sub.add_parser("ruflo", help="Fase 0 opcional: meta-orquestrador Ruflo")
+    ruflo_sub = ruflo.add_subparsers(dest="ruflo_command", required=True)
+
+    ruflo_status = ruflo_sub.add_parser("status", help="Mostra o estado local do Ruflo")
+    ruflo_status.add_argument("--workspace", default=".")
+
+    ruflo_init = ruflo_sub.add_parser("init", help="Inicializa Ruflo em um workspace")
+    ruflo_init.add_argument("--workspace", default=".")
+    ruflo_init.add_argument("--wizard", action="store_true", help="Usa o assistente interativo oficial")
+    ruflo_init.add_argument("--execute", action="store_true", help="Executa de verdade; sem isso apenas mostra o comando")
+
+    ruflo_mcp = ruflo_sub.add_parser("mcp", help="Mostra o comando oficial do servidor MCP Ruflo")
+    ruflo_mcp.add_argument("--workspace", default=".")
+
+    ruflo_probe = ruflo_sub.add_parser("probe", help="Consulta a versao do Ruflo via npx")
+    ruflo_probe.add_argument("--workspace", default=".")
+    ruflo_probe.add_argument("--execute", action="store_true", help="Permite acesso ao pacote via npx; sem isso e dry-run")
 
     phase = sub.add_parser("phase", help="Executa ou consulta uma das sete fases")
     phases = phase.add_subparsers(dest="phase_name", required=True)
@@ -158,6 +179,71 @@ def _run_phase(args: argparse.Namespace) -> None:
     raise SystemExit(2)
 
 
+def _run_ruflo(args: argparse.Namespace) -> None:
+    adapter = RufloAdapter(args.workspace)
+
+    if args.ruflo_command == "status":
+        _json(adapter.report().to_dict())
+        return
+
+    if args.ruflo_command == "init":
+        result = adapter.init_workspace(wizard=args.wizard, dry_run=not args.execute)
+        if isinstance(result, tuple):
+            _json(
+                {
+                    "phase": 0,
+                    "name": "ruflo",
+                    "execute": False,
+                    "workspace": str(adapter.workspace),
+                    "command": result,
+                }
+            )
+        else:
+            _json(
+                {
+                    "phase": 0,
+                    "name": "ruflo",
+                    "execute": True,
+                    "workspace": str(adapter.workspace),
+                    "returncode": result.returncode,
+                    "stdout": result.stdout,
+                    "stderr": result.stderr,
+                }
+            )
+        return
+
+    if args.ruflo_command == "mcp":
+        _json(
+            {
+                "phase": 0,
+                "name": "ruflo",
+                "workspace": str(adapter.workspace),
+                "command": adapter.build_mcp_command(),
+                "note": "Preview only: MCP is a long-running process and is not started implicitly.",
+            }
+        )
+        return
+
+    if args.ruflo_command == "probe":
+        result = adapter.probe_runtime(dry_run=not args.execute)
+        if isinstance(result, tuple):
+            _json({"phase": 0, "name": "ruflo", "execute": False, "command": result})
+        else:
+            _json(
+                {
+                    "phase": 0,
+                    "name": "ruflo",
+                    "execute": True,
+                    "returncode": result.returncode,
+                    "stdout": result.stdout,
+                    "stderr": result.stderr,
+                }
+            )
+        return
+
+    raise SystemExit(2)
+
+
 def main() -> None:
     args = build_parser().parse_args()
 
@@ -182,7 +268,9 @@ def main() -> None:
 
     if args.command == "doctor":
         hub = IntegrationHub(args.external_root, comfyui_url=args.comfyui_url)
-        reports = hub.reports(probe_services=args.probe_services)
+        reports = list(hub.reports(probe_services=args.probe_services))
+        if args.with_ruflo:
+            reports.insert(0, RufloAdapter(args.ruflo_workspace).report())
         if args.as_json:
             _json(
                 {
@@ -197,6 +285,10 @@ def main() -> None:
                 print(f"{item.phase}. {item.name}: {state} - {item.detail}")
         if args.strict and not all(item.operational for item in reports):
             raise SystemExit(1)
+        return
+
+    if args.command == "ruflo":
+        _run_ruflo(args)
         return
 
     if args.command == "phase":
