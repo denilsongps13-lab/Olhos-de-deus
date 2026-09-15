@@ -10,15 +10,14 @@ from PySide6.QtWidgets import QApplication, QMenu, QSplashScreen, QSystemTrayIco
 
 from olhos_de_deus import __version__
 
+from .cockpit_window import CockpitWindow
 from .controller import DesktopController
 from .ruflo_panel import install_ruflo_dock
 from .theme import APP_STYLESHEET
-from .window import OlhosDeDeusWindow
 
 # Qt can dispatch changeEvent while QMainWindow is still inside its base
 # constructor, before the instance initializer assigns _tray_available.
-# A class-level fallback prevents that early Windows event from crashing.
-OlhosDeDeusWindow._tray_available = False
+CockpitWindow._tray_available = False
 
 
 def build_icon(size: int = 128) -> QIcon:
@@ -46,26 +45,26 @@ def build_icon(size: int = 128) -> QIcon:
 
 def _splash(icon: QIcon) -> QSplashScreen:
     pixmap = QPixmap(620, 320)
-    pixmap.fill(QColor(7, 16, 24))
+    pixmap.fill(QColor(5, 14, 24))
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
     painter.setPen(QColor(100, 234, 255))
-    painter.drawPixmap(250, 40, 120, 120, icon.pixmap(120, 120))
+    painter.drawPixmap(250, 38, 120, 120, icon.pixmap(120, 120))
     painter.setPen(QColor(225, 250, 255))
     font = painter.font()
     font.setPointSize(24)
     font.setBold(True)
     painter.setFont(font)
-    painter.drawText(0, 185, 620, 50, Qt.AlignmentFlag.AlignCenter, "OLHOS DE DEUS")
+    painter.drawText(0, 182, 620, 50, Qt.AlignmentFlag.AlignCenter, "OLHO DE DEUS")
     font.setPointSize(10)
     font.setBold(False)
     painter.setFont(font)
-    painter.setPen(QColor(105, 165, 185))
-    painter.drawText(0, 230, 620, 30, Qt.AlignmentFlag.AlignCenter, "CENTRAL DE INTELIGÊNCIA ARTIFICIAL")
+    painter.setPen(QColor(105, 190, 220))
+    painter.drawText(0, 228, 620, 30, Qt.AlignmentFlag.AlignCenter, "COCKPIT DE INTELIGÊNCIA ARTIFICIAL")
     painter.end()
     splash = QSplashScreen(pixmap)
     splash.showMessage(
-        "Inicializando núcleo · carregando banco · verificando integrações...",
+        "Inicializando cockpit · carregando núcleo · verificando integrações...",
         Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter,
         QColor(110, 220, 245),
     )
@@ -78,14 +77,21 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _wire_ruflo(window: CockpitWindow, controller: DesktopController):
+    dock = install_ruflo_dock(window, controller)
+    window.set_ruflo_dock(dock)
+    dock.hide()
+    return dock
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = _build_parser().parse_args(list(argv) if argv is not None else None)
 
     app = QApplication.instance() or QApplication(sys.argv[:1])
-    app.setApplicationName("Olhos de Deus")
-    app.setApplicationDisplayName("Olhos de Deus")
+    app.setApplicationName("Olho de Deus")
+    app.setApplicationDisplayName("Olho de Deus")
     app.setApplicationVersion(__version__)
-    app.setOrganizationName("Olhos de Deus")
+    app.setOrganizationName("Olho de Deus")
     app.setStyleSheet(APP_STYLESHEET)
     icon = build_icon()
     app.setWindowIcon(icon)
@@ -97,13 +103,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 2
         if dashboard.get("ruflo", {}).get("phase") != 0:
             return 3
-        window = OlhosDeDeusWindow(controller)
+        window = CockpitWindow(controller)
         window.setWindowIcon(icon)
-        ruflo_dock = install_ruflo_dock(window, controller)
+        ruflo_dock = _wire_ruflo(window, controller)
         window.show()
         app.processEvents()
         window.core_animation.repaint()
         ruflo_dock.widget().refresh_status()
+        window._refresh_dashboard()
         app.processEvents()
         window.close()
         app.processEvents()
@@ -113,16 +120,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     splash.show()
     app.processEvents()
 
-    window = OlhosDeDeusWindow(controller)
+    window = CockpitWindow(controller)
     window.setWindowIcon(icon)
-    ruflo_dock = install_ruflo_dock(window, controller)
+    ruflo_dock = _wire_ruflo(window, controller)
 
     tray: QSystemTrayIcon | None = None
     if QSystemTrayIcon.isSystemTrayAvailable():
         tray = QSystemTrayIcon(icon, app)
-        tray.setToolTip("Olhos de Deus")
+        tray.setToolTip("Olho de Deus")
         menu = QMenu()
-        open_action = menu.addAction("Abrir")
+        open_action = menu.addAction("Abrir cockpit")
         status_action = menu.addAction("Status")
         doctor_action = menu.addAction("Doctor")
         ruflo_action = menu.addAction("Ruflo · Fase 0")
@@ -135,7 +142,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             data = controller.dashboard()
             ruflo_state = "READY" if data.get("ruflo", {}).get("operational") else "PENDING"
             tray.showMessage(
-                "Olhos de Deus",
+                "Olho de Deus",
                 f"Núcleo online · {data['operational']}/{data['total_integrations']} fases prontas · Ruflo {ruflo_state}",
                 QSystemTrayIcon.MessageIcon.Information,
                 5000,
