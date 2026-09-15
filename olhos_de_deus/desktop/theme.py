@@ -1,239 +1,353 @@
 APP_STYLESHEET = r"""
 QMainWindow, QWidget {
-    background-color: #050d16;
+    background-color: #030914;
     color: #dff7ff;
     font-family: "Segoe UI";
     font-size: 10pt;
 }
+QWidget#CockpitPage { background-color: #020814; }
 QFrame#Sidebar {
-    background-color: #06131f;
-    border-right: 1px solid #0f4460;
+    background-color: #04111f;
+    border-right: 1px solid #0b79a8;
 }
-QLabel#CockpitLogo {
-    color: #53e7ff;
-    font-size: 30pt;
-    font-weight: 800;
+QFrame#SidebarLogoBox {
+    background-color: #03101d;
+    border: 1px solid #0a3852;
+    border-radius: 9px;
 }
 QLabel#Brand {
-    color: #dffaff;
+    color: #e6fbff;
     font-size: 17pt;
     font-weight: 800;
     letter-spacing: 2px;
 }
 QLabel#Subtitle {
-    color: #4fc6ee;
+    color: #3ec8f4;
     font-size: 8pt;
     letter-spacing: 2px;
 }
 QLabel#CockpitQuote {
-    color: #77b9da;
+    color: #76b7d5;
     font-size: 9pt;
+    letter-spacing: 2px;
+    padding: 10px 6px;
+    border-left: 2px solid #0c81b5;
+}
+QLabel#SidebarVersion {
+    color: #5f8fa8;
+    font-size: 7pt;
     letter-spacing: 1px;
-    padding: 8px;
+    padding: 5px;
 }
 QPushButton#NavButton {
     text-align: left;
-    padding: 11px 12px;
+    padding: 12px 12px;
     border: 1px solid transparent;
-    border-radius: 7px;
+    border-radius: 6px;
     background: transparent;
-    color: #b9d8e4;
+    color: #a8d0df;
     font-size: 10pt;
 }
 QPushButton#NavButton:hover {
-    background-color: #0b2433;
-    border-color: #1f607d;
+    background-color: #08243a;
+    border-color: #0d6e99;
     color: #8eeeff;
 }
 QPushButton#NavButton:checked {
-    background-color: #0a3851;
-    border-color: #1fc8f0;
-    color: #b7f7ff;
+    background-color: #07365a;
+    border: 1px solid #1ec9ff;
+    color: #c8f9ff;
     font-weight: 700;
-}
-QPushButton#PrimaryButton {
-    background-color: #0a8fbd;
-    color: white;
-    border: 1px solid #33dcff;
-    border-radius: 7px;
-    padding: 9px 16px;
-    font-weight: 700;
-}
-QPushButton#PrimaryButton:hover { background-color: #10a9dc; }
-QPushButton#PrimaryButton:disabled {
-    background-color: #12303e;
-    color: #5d7e8b;
-    border-color: #274958;
-}
-QPushButton#SecondaryButton {
-    background-color: #081923;
-    color: #bcecff;
-    border: 1px solid #25566b;
-    border-radius: 7px;
-    padding: 8px 14px;
-}
-QPushButton#SecondaryButton:hover { border-color: #34c8ec; background-color: #0b2634; }
-QPushButton#SecondaryButton:disabled { color: #58717b; border-color: #193441; }
-QFrame#Card,
-QFrame#OperationCard,
-QFrame#CommandCard,
-QFrame#ResponseCard {
-    background-color: #071722;
-    border: 1px solid #145271;
-    border-radius: 10px;
 }
 QFrame#CockpitTopBar {
-    background-color: #071722;
-    border: 1px solid #0e3c55;
-    border-radius: 9px;
+    background-color: #041321;
+    border: 1px solid #0e4566;
+    border-radius: 8px;
 }
 QFrame#CockpitStatusItem {
-    background-color: #06141f;
-    border: 1px solid #123d53;
-    border-radius: 7px;
+    background-color: #03101c;
+    border-right: 1px solid #0a4b70;
+}
+QLabel#StatusIcon {
+    color: #20d8ff;
+    font-size: 16pt;
+    font-weight: 700;
 }
 QLabel#CockpitStatusTitle {
-    color: #6caac3;
+    color: #5797b7;
     font-size: 7pt;
     font-weight: 700;
     letter-spacing: 1px;
 }
 QLabel#CockpitStatusValue {
     color: #dffaff;
-    font-size: 11pt;
+    font-size: 10pt;
     font-weight: 700;
 }
 QLabel#CockpitModel {
-    color: #63e6ff;
-    background-color: #082131;
-    border: 1px solid #1598c0;
-    border-radius: 7px;
-    padding: 9px 12px;
+    min-width: 145px;
+    color: #59e4ff;
+    background-color: #041c30;
+    border: 1px solid #148eb8;
+    border-radius: 6px;
+    padding: 10px 12px;
     font-weight: 700;
 }
 QFrame#HeroBanner {
-    background-color: #061825;
-    border: 1px solid #10405b;
-    border-radius: 10px;
+    background-color: #03101d;
+    border: 1px solid #0d4160;
+    border-radius: 8px;
 }
 QLabel#HeroTitle {
-    color: #a9f5ff;
-    font-size: 13pt;
+    background: transparent;
+    color: #9aefff;
+    font-size: 12pt;
     font-weight: 800;
-    letter-spacing: 2px;
+    letter-spacing: 3px;
 }
-QLabel#SectionTitle,
-QLabel#OperationTitle {
-    color: #8feeff;
+QLabel#HeroSub {
+    background: transparent;
+    color: #397fa1;
+    font-size: 7pt;
+    letter-spacing: 1px;
+}
+QFrame#CommandCard, QFrame#ResponseCard {
+    background-color: #04111d;
+    border: 1px solid #0d6f97;
+    border-radius: 8px;
+}
+QLabel#SectionTitle {
+    color: #93efff;
     font-size: 10pt;
     font-weight: 800;
     letter-spacing: 1px;
 }
 QLabel#CockpitMeta {
-    color: #3d94b2;
+    color: #4388a5;
     font-size: 7pt;
     letter-spacing: 1px;
 }
-QFrame#OperationsPanel {
-    background-color: #06131e;
-    border: 1px solid #0f4260;
-    border-radius: 10px;
+QLabel#CockpitMetaBright {
+    color: #42efc4;
+    font-size: 7pt;
+    font-weight: 700;
+    letter-spacing: 1px;
 }
-QLabel#CardTitle {
-    color: #80eaff;
-    font-size: 9pt;
+QPlainTextEdit#CommandInput {
+    background-color: #03101b;
+    color: #dbf7ff;
+    border: 1px solid #159ac9;
+    border-radius: 7px;
+    padding: 13px;
+    font-size: 11pt;
+    selection-background-color: #086990;
+}
+QPlainTextEdit#CommandInput:focus { border-color: #3de6ff; }
+QPushButton#PrimaryButton {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:0, stop:0 #0aa8d5, stop:1 #16d7f3);
+    color: #00131e;
+    border: 1px solid #58efff;
+    border-radius: 6px;
+    padding: 10px 18px;
+    font-weight: 800;
+}
+QPushButton#PrimaryButton:hover { background-color: #32e9ff; }
+QPushButton#PrimaryButton:disabled {
+    background-color: #12303e;
+    color: #5d7e8b;
+    border-color: #274958;
+}
+QPushButton#SecondaryButton, QPushButton#CompactButton {
+    background-color: #051522;
+    color: #aee9f7;
+    border: 1px solid #1c5672;
+    border-radius: 6px;
+    padding: 9px 14px;
     font-weight: 600;
 }
-QLabel#CardValue {
-    color: #f3fdff;
-    font-size: 20pt;
+QPushButton#CompactButton { padding: 7px 9px; font-size: 8pt; }
+QPushButton#SecondaryButton:hover, QPushButton#CompactButton:hover {
+    background-color: #08283b;
+    border-color: #2ad7ff;
+    color: #dffcff;
+}
+QPushButton#SecondaryButton:disabled, QPushButton#CompactButton:disabled {
+    color: #58717b;
+    border-color: #193441;
+}
+QTabWidget#CockpitTabs::pane {
+    border: 1px solid #0d4a67;
+    border-radius: 6px;
+    top: -1px;
+    background: #020b13;
+}
+QTabBar::tab {
+    background: #041421;
+    color: #5f9eb8;
+    padding: 8px 13px;
+    border: 1px solid #0d3850;
+    border-bottom: none;
+}
+QTabBar::tab:selected {
+    background: #062b42;
+    color: #86efff;
+    border-color: #18a7d4;
+}
+QPlainTextEdit#ConsoleOutput {
+    background-color: #020a12;
+    border: none;
+    color: #9fd8e8;
+    font-family: "Consolas";
+    font-size: 9pt;
+    padding: 9px;
+    selection-background-color: #0d5472;
+}
+QWidget#ExecutionEye { background-color: #020a12; }
+QLineEdit#FollowupInput {
+    background-color: #03101b;
+    border: 1px solid #0e4662;
+    border-radius: 6px;
+    color: #dff7ff;
+    padding: 9px;
+}
+QPushButton#SendButton {
+    background-color: #05243a;
+    border: 1px solid #1bbfe9;
+    border-radius: 6px;
+    color: #7eefff;
+    font-size: 14pt;
+    font-weight: 800;
+}
+QFrame#OperationsPanel {
+    background-color: #03101c;
+    border: 1px solid #0c4667;
+    border-radius: 8px;
+}
+QFrame#OperationCard {
+    background-color: #041420;
+    border: 1px solid #0e4c6e;
+    border-radius: 8px;
+}
+QLabel#OperationIcon {
+    color: #26d9ff;
+    font-size: 14pt;
+    font-weight: 800;
+}
+QLabel#OperationTitle {
+    color: #d4f8ff;
+    font-size: 10pt;
+    font-weight: 800;
+}
+QFrame#MiniMetric {
+    background-color: #03101a;
+    border: 1px solid #0b354c;
+    border-radius: 5px;
+}
+QLabel#MiniMetricTitle {
+    color: #4e8aa5;
+    font-size: 6pt;
     font-weight: 700;
 }
-QLabel#PageTitle {
-    color: #e8fbff;
-    font-size: 20pt;
+QLabel#MiniMetricValue {
+    color: #64e8ff;
+    font-size: 7pt;
     font-weight: 700;
 }
+QLabel#TinyMuted { color: #648ea1; font-size: 7pt; }
+QLabel#MiniInfo { color: #5fa0b9; font-size: 7pt; }
+QLabel#AgentDot { color: #25e6bc; font-size: 8pt; }
+QLabel#AgentName, QLabel#IntegrationName { color: #b7dbe7; font-size: 8pt; }
+QLabel#CockpitChipReady {
+    color: #35f0b8;
+    background-color: #043326;
+    border: 1px solid #139d78;
+    border-radius: 8px;
+    padding: 2px 8px;
+    font-size: 7pt;
+    font-weight: 800;
+}
+QLabel#CockpitChipPending {
+    color: #ffd166;
+    background-color: #33270a;
+    border: 1px solid #927221;
+    border-radius: 8px;
+    padding: 2px 8px;
+    font-size: 7pt;
+    font-weight: 800;
+}
+QLabel#CockpitChipInfo {
+    color: #4fd9ff;
+    background-color: #06263a;
+    border: 1px solid #147ca3;
+    border-radius: 8px;
+    padding: 2px 8px;
+    font-size: 7pt;
+    font-weight: 800;
+}
+QProgressBar#SwarmProgress {
+    background-color: #03101a;
+    border: 1px solid #0c3e56;
+    border-radius: 4px;
+    height: 8px;
+}
+QProgressBar#SwarmProgress::chunk {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:0, stop:0 #0a92c4, stop:1 #27e6ff);
+    border-radius: 3px;
+}
+QFrame#WorldFooterCard {
+    background-color: #03101a;
+    border: 1px solid #0b3a54;
+    border-radius: 8px;
+}
+QLabel#WorldFooterText {
+    color: #4f9dbb;
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+QLabel#CardTitle { color: #80eaff; font-size: 9pt; font-weight: 600; }
+QLabel#CardValue { color: #f3fdff; font-size: 20pt; font-weight: 700; }
+QLabel#PageTitle { color: #e8fbff; font-size: 20pt; font-weight: 700; }
 QLabel#Muted { color: #6f9bac; }
 QLabel#Ready { color: #55f0ac; font-weight: 800; }
 QLabel#Pending { color: #ffd166; font-weight: 800; }
 QLabel#Error { color: #ff6f91; font-weight: 800; }
+QFrame#Card {
+    background-color: #06131f;
+    border: 1px solid #16445d;
+    border-radius: 9px;
+}
 QLineEdit, QTextEdit, QPlainTextEdit, QComboBox {
-    background-color: #06111b;
+    background-color: #04101a;
     color: #dff7ff;
-    border: 1px solid #1d4659;
-    border-radius: 7px;
+    border: 1px solid #1a465b;
+    border-radius: 6px;
     padding: 7px;
     selection-background-color: #0f7598;
 }
-QPlainTextEdit#CommandInput {
-    background-color: #061521;
-    border: 1px solid #1f9cc6;
-    font-size: 11pt;
-    padding: 12px;
-}
-QPlainTextEdit#ConsoleOutput {
-    background-color: #040d15;
-    border: 1px solid #0f3f58;
-    color: #b9e7f4;
-    font-family: "Consolas";
-    font-size: 9pt;
-    padding: 9px;
-}
-QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QComboBox:focus {
-    border-color: #32d5f7;
-}
-QTabWidget#CockpitTabs::pane {
-    border: 1px solid #0f3f58;
-    border-radius: 7px;
-    top: -1px;
-    background: #040d15;
-}
-QTabBar::tab {
-    background: #071826;
-    color: #6fa9c0;
-    padding: 8px 14px;
-    border: 1px solid #113b50;
-    border-bottom: none;
-}
-QTabBar::tab:selected {
-    background: #093048;
-    color: #8ff2ff;
-    border-color: #1ba9d2;
-}
+QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QComboBox:focus { border-color: #32d5f7; }
 QTableWidget {
-    background-color: #06111b;
-    alternate-background-color: #0a1c28;
-    gridline-color: #16394a;
+    background-color: #04101a;
+    alternate-background-color: #071b27;
+    gridline-color: #12384a;
     border: 1px solid #173b4c;
     border-radius: 8px;
 }
 QHeaderView::section {
-    background-color: #0b2230;
+    background-color: #082131;
     color: #8eeeff;
     border: none;
     border-right: 1px solid #173b4c;
     padding: 7px;
     font-weight: 600;
 }
-QScrollBar:vertical {
-    border: none;
-    background: #06111b;
-    width: 10px;
-}
-QScrollBar::handle:vertical {
-    background: #17607c;
-    min-height: 24px;
-    border-radius: 5px;
-}
+QScrollBar:vertical { border: none; background: #03101a; width: 9px; }
+QScrollBar::handle:vertical { background: #145675; min-height: 24px; border-radius: 4px; }
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }
 QStatusBar {
-    background-color: #06131e;
-    color: #6fa6b9;
-    border-top: 1px solid #12384d;
+    background-color: #03101c;
+    color: #5f91a5;
+    border-top: 1px solid #0d3950;
 }
-QDockWidget {
-    color: #8feeff;
-    titlebar-close-icon: none;
-}
+QDockWidget { color: #8feeff; titlebar-close-icon: none; }
 """
