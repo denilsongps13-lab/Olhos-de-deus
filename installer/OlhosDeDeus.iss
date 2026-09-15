@@ -1,6 +1,6 @@
-#define MyAppName "Olhos de Deus"
-#define MyAppVersion "0.6.2"
-#define MyAppPublisher "Olhos de Deus"
+#define MyAppName "Olho de Deus"
+#define MyAppVersion "0.7.0"
+#define MyAppPublisher "Olho de Deus"
 #define MyAppExeName "OlhosDeDeus.exe"
 
 [Setup]
@@ -8,8 +8,8 @@ AppId={{AF09F8D5-1297-4B9A-8C89-2C9EC0E3B63B}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName={autopf}\Olhos de Deus
-DefaultGroupName=Olhos de Deus
+DefaultDirName={autopf}\Olho de Deus
+DefaultGroupName=Olho de Deus
 DisableProgramGroupPage=yes
 PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
@@ -21,8 +21,8 @@ SolidCompression=yes
 WizardStyle=modern
 SetupIconFile=..\build\OlhosDeDeus.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
-VersionInfoVersion=0.6.2.0
-VersionInfoDescription=Olhos de Deus - Central de Inteligência Artificial
+VersionInfoVersion=0.7.0.0
+VersionInfoDescription=Olho de Deus - Cockpit de Inteligência Artificial
 
 [Languages]
 Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
@@ -35,14 +35,14 @@ Name: "desktopicon"; Description: "Criar atalho na Área de Trabalho"; GroupDesc
 Source: "..\dist\OlhosDeDeus\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\Olhos de Deus"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"
-Name: "{autodesktop}\Olhos de Deus"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{autoprograms}\Olho de Deus"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"
+Name: "{autodesktop}\Olho de Deus"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "Abrir Olhos de Deus"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "Abrir Olho de Deus"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
 
-; Dados, logs e banco ficam em %LOCALAPPDATA%\OlhosDeDeus e não são apagados
-; pelo desinstalador para evitar perda acidental do histórico do usuário.
+; Dados, logs e banco continuam em %LOCALAPPDATA%\OlhosDeDeus e não são apagados
+; pelo desinstalador para preservar histórico, Ruflo e estado do swarm.
