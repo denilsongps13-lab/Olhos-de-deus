@@ -55,6 +55,7 @@ class RufloPanel(QWidget):
         self.controller = controller
         self.thread_pool = QThreadPool.globalInstance()
         self._busy = False
+        self._workers: set[_Worker] = set()
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(14, 14, 14, 14)
@@ -208,51 +209,83 @@ class RufloPanel(QWidget):
 
         self.refresh_status()
 
+    def _adapter_state(self) -> tuple[bool, bool]:
+        adapter = self.controller.ruflo_adapter()
+        return adapter.initialized, adapter.swarm_initialized
+
+    def _sync_action_states(self) -> None:
+        initialized, swarm_initialized = self._adapter_state()
+        enabled = not self._busy
+
+        self.refresh_button.setEnabled(enabled)
+        self.preview_button.setEnabled(enabled and not initialized)
+        self.init_button.setEnabled(enabled and not initialized)
+        self.wizard.setEnabled(enabled and not initialized)
+
+        self.swarm_preview.setEnabled(enabled and initialized)
+        self.swarm_init.setEnabled(enabled and initialized and not swarm_initialized)
+        self.swarm_status.setEnabled(enabled and initialized and swarm_initialized)
+        self.swarm_start.setEnabled(enabled and initialized and swarm_initialized)
+
+        self.topology.setEnabled(enabled and initialized and not swarm_initialized)
+        self.permissions.setEnabled(enabled and initialized and not swarm_initialized)
+        self.max_agents.setEnabled(enabled and initialized and not swarm_initialized)
+        self.strategy.setEnabled(enabled and initialized)
+        self.objective.setEnabled(enabled and initialized and swarm_initialized)
+
+        self.init_button.setText("RUFLO INICIALIZADO" if initialized else "INICIALIZAR RUFLO")
+        self.swarm_init.setText("SWARM CRIADO" if swarm_initialized else "CRIAR SWARM")
+
     def _set_busy(self, busy: bool) -> None:
         self._busy = busy
-        for button in (
-            self.refresh_button,
-            self.preview_button,
-            self.init_button,
-            self.swarm_preview,
-            self.swarm_init,
-            self.swarm_status,
-            self.swarm_start,
-        ):
-            button.setEnabled(not busy)
+        self._sync_action_states()
         if busy:
             self.status.setText("EXECUTANDO")
             self.status.setObjectName("Pending")
             self.status.style().unpolish(self.status)
             self.status.style().polish(self.status)
 
-    def _render(self, payload: Any) -> None:
-        self.output.setPlainText(json.dumps(payload, ensure_ascii=False, indent=2, default=str))
-        if isinstance(payload, dict) and payload.get("name") == "ruflo":
-            installed = bool(payload.get("installed"))
-            operational = bool(payload.get("operational"))
-            if operational:
-                state = "READY"
-                object_name = "Ready"
-            elif installed:
-                state = "INSTALLED"
-                object_name = "Pending"
-            else:
-                state = "PENDING"
-                object_name = "Pending"
-            self.status.setText(state)
-            self.status.setObjectName(object_name)
-            self.status.style().unpolish(self.status)
-            self.status.style().polish(self.status)
-            self.detail.setText(str(payload.get("detail", "")))
+    def _apply_status(self, payload: Any) -> None:
+        if not (isinstance(payload, dict) and payload.get("name") == "ruflo"):
+            return
+        installed = bool(payload.get("installed"))
+        operational = bool(payload.get("operational"))
+        if operational:
+            state = "READY"
+            object_name = "Ready"
+        elif installed:
+            state = "INSTALLED"
+            object_name = "Pending"
+        else:
+            state = "PENDING"
+            object_name = "Pending"
+        self.status.setText(state)
+        self.status.setObjectName(object_name)
+        self.status.style().unpolish(self.status)
+        self.status.style().polish(self.status)
+        self.detail.setText(str(payload.get("detail", "")))
+        self.workspace.setText(f"Workspace: {self.controller.ruflo_workspace}")
+
+    def _render(self, payload: Any, *, replace_output: bool = True) -> None:
+        if replace_output:
+            self.output.setPlainText(json.dumps(payload, ensure_ascii=False, indent=2, default=str))
+        self._apply_status(payload)
+        self._sync_action_states()
 
     @staticmethod
     def _completed_payload(result) -> dict[str, Any]:
-        return {
+        payload: dict[str, Any] = {
             "returncode": result.returncode,
             "stdout": result.stdout,
             "stderr": result.stderr,
         }
+        stdout = (result.stdout or "").strip()
+        if stdout:
+            try:
+                payload["stdout_json"] = json.loads(stdout)
+            except (TypeError, ValueError, json.JSONDecodeError):
+                pass
+        return payload
 
     def _swarm_options(self) -> dict[str, Any]:
         return {
@@ -264,16 +297,26 @@ class RufloPanel(QWidget):
 
     def refresh_status(self) -> None:
         payload = self.controller.ruflo_status()
-        self.workspace.setText(f"Workspace: {self.controller.ruflo_workspace}")
         self._render(payload)
 
+    def _refresh_status_card_only(self) -> None:
+        payload = self.controller.ruflo_status()
+        self._render(payload, replace_output=False)
+
     def preview_init(self) -> None:
+        if self.controller.ruflo_adapter().initialized:
+            self.refresh_status()
+            return
         payload = self.controller.ruflo_init(execute=False, wizard=self.wizard.isChecked())
         self.workspace.setText(f"Workspace: {self.controller.ruflo_workspace}")
         self.output.setPlainText(json.dumps(payload, ensure_ascii=False, indent=2, default=str))
 
     def confirm_init(self) -> None:
         if self._busy:
+            return
+        if self.controller.ruflo_adapter().initialized:
+            self.refresh_status()
+            QMessageBox.information(self, "Ruflo", "O Ruflo já está inicializado neste workspace.")
             return
         answer = QMessageBox.question(
             self,
@@ -291,6 +334,9 @@ class RufloPanel(QWidget):
 
     def preview_swarm(self) -> None:
         adapter = self.controller.ruflo_adapter()
+        if not adapter.initialized:
+            QMessageBox.warning(self, "Ruflo", "Inicialize o Ruflo antes de preparar o swarm.")
+            return
         command = adapter.init_swarm(dry_run=True, **self._swarm_options())
         self.output.setPlainText(
             json.dumps(
@@ -308,6 +354,14 @@ class RufloPanel(QWidget):
 
     def confirm_swarm_init(self) -> None:
         if self._busy:
+            return
+        adapter = self.controller.ruflo_adapter()
+        if not adapter.initialized:
+            QMessageBox.warning(self, "Ruflo", "Inicialize o Ruflo antes de criar o swarm.")
+            return
+        if adapter.swarm_initialized:
+            self._refresh_status_card_only()
+            QMessageBox.information(self, "Ruflo", "O swarm já foi criado neste workspace.")
             return
         answer = QMessageBox.question(
             self,
@@ -338,6 +392,13 @@ class RufloPanel(QWidget):
         self._run_async(execute)
 
     def query_swarm_status(self) -> None:
+        if self._busy:
+            return
+        adapter = self.controller.ruflo_adapter()
+        if not adapter.swarm_initialized:
+            QMessageBox.warning(self, "Ruflo", "Crie o swarm antes de consultar o status.")
+            return
+
         def execute() -> dict[str, Any]:
             result = self.controller.ruflo_adapter().swarm_status(dry_run=False)
             return {
@@ -352,6 +413,9 @@ class RufloPanel(QWidget):
 
     def confirm_swarm_start(self) -> None:
         if self._busy:
+            return
+        if not self.controller.ruflo_adapter().swarm_initialized:
+            QMessageBox.warning(self, "Ruflo", "Crie o swarm antes de coordenar um objetivo.")
             return
         objective = self.objective.toPlainText().strip()
         if not objective:
@@ -393,25 +457,42 @@ class RufloPanel(QWidget):
         self._run_async(execute)
 
     def _run_async(self, function: Callable[[], Any]) -> None:
+        if self._busy:
+            return
         self._set_busy(True)
         worker = _Worker(function)
+        self._workers.add(worker)
         worker.signals.result.connect(self._on_result)
         worker.signals.error.connect(self._on_error)
-        worker.signals.finished.connect(lambda: self._set_busy(False))
+        worker.signals.finished.connect(lambda w=worker: self._on_worker_finished(w))
         self.thread_pool.start(worker)
+
+    def _on_worker_finished(self, worker: _Worker) -> None:
+        self._workers.discard(worker)
+        self._set_busy(False)
 
     @Slot(object)
     def _on_result(self, payload: Any) -> None:
+        # Re-enable controls immediately and preserve the real command response.
+        # Previously refresh_status() overwrote swarm/init output and controls could
+        # remain disabled until the app was restarted.
+        self._set_busy(False)
         self.output.setPlainText(json.dumps(payload, ensure_ascii=False, indent=2, default=str))
-        self.refresh_status()
+        try:
+            self._refresh_status_card_only()
+        except Exception:
+            # The command result is more important than a secondary visual refresh.
+            self._sync_action_states()
 
     @Slot(str)
     def _on_error(self, message: str) -> None:
+        self._set_busy(False)
         self.status.setText("ERRO")
         self.status.setObjectName("Pending")
         self.status.style().unpolish(self.status)
         self.status.style().polish(self.status)
         self.output.setPlainText(message)
+        self._sync_action_states()
         QMessageBox.critical(self, "Ruflo", message)
 
 
