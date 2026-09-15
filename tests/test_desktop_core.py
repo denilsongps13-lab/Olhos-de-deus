@@ -35,13 +35,20 @@ def test_desktop_storage_round_trips_settings_missions_and_logs(tmp_path):
     assert storage.recent_logs(1)[0]["message"] == "started"
 
 
-def test_desktop_controller_reports_seven_integrations(tmp_path):
+def test_desktop_controller_reports_seven_integrations_plus_ruflo_meta(tmp_path):
     paths = AppPaths.from_root(tmp_path / "data")
     controller = DesktopController(paths=paths)
     dashboard = controller.dashboard()
     assert dashboard["total_integrations"] == 7
+    assert dashboard["ruflo"]["phase"] == 0
+    assert dashboard["ruflo"]["name"] == "ruflo"
     assert dashboard["summary"]["missions"] == 0
     assert Path(dashboard["external_root"]).is_dir()
+
+    doctor = controller.doctor()
+    assert len(doctor) == 8
+    assert doctor[0]["phase"] == 0
+    assert [item["phase"] for item in doctor[1:]] == list(range(1, 8))
 
 
 def test_desktop_controller_runs_and_persists_mission(tmp_path):
@@ -60,3 +67,11 @@ def test_desktop_phase_preview_is_safe_dry_run(tmp_path):
     assert result["phase"] == 1
     assert result["execute"] is False
     assert result["command"] == ["graphify", "."]
+
+
+def test_desktop_ruflo_init_is_dry_run_by_default(tmp_path):
+    controller = DesktopController(paths=AppPaths.from_root(tmp_path / "data"))
+    result = controller.ruflo_init(execute=False)
+    assert result["phase"] == 0
+    assert result["execute"] is False
+    assert "ruflo@latest" in result["command"]

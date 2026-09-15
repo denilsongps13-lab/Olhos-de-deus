@@ -12,6 +12,7 @@ from olhos_de_deus import __version__
 from olhos_de_deus.bootstrap import bootstrap_sources
 from olhos_de_deus.integrations import IntegrationHub
 from olhos_de_deus.orchestrator import Orchestrator
+from olhos_de_deus.ruflo import RufloAdapter
 
 from .paths import AppPaths
 from .storage import DesktopStorage
@@ -37,6 +38,8 @@ class DesktopController:
             self.storage.set_setting("comfyui_url", "http://127.0.0.1:8188")
         if self.storage.get_setting("dry_run_default") is None:
             self.storage.set_setting("dry_run_default", True)
+        if self.storage.get_setting("ruflo_workspace") is None:
+            self.storage.set_setting("ruflo_workspace", str(self.paths.root / "workspace"))
 
     @property
     def external_root(self) -> Path:
@@ -46,8 +49,17 @@ class DesktopController:
     def comfyui_url(self) -> str:
         return str(self.storage.get_setting("comfyui_url", "http://127.0.0.1:8188"))
 
+    @property
+    def ruflo_workspace(self) -> Path:
+        return Path(
+            self.storage.get_setting("ruflo_workspace", str(self.paths.root / "workspace"))
+        ).expanduser().resolve()
+
     def integration_hub(self) -> IntegrationHub:
         return IntegrationHub(self.external_root, comfyui_url=self.comfyui_url)
+
+    def ruflo_adapter(self) -> RufloAdapter:
+        return RufloAdapter(self.ruflo_workspace)
 
     def dashboard(self) -> dict[str, Any]:
         reports = self.integration_hub().reports(probe_services=False)
@@ -59,23 +71,71 @@ class DesktopController:
             "installed": sum(item.installed for item in reports),
             "total_integrations": len(reports),
             "integrations": [item.to_dict() for item in reports],
+            "ruflo": self.ruflo_adapter().report().to_dict(),
             "last_mission": recent[0] if recent else None,
             "summary": summary,
             "data_root": str(self.paths.root),
             "external_root": str(self.external_root),
             "comfyui_url": self.comfyui_url,
+            "ruflo_workspace": str(self.ruflo_workspace),
         }
 
     def doctor(self, *, probe_services: bool = False) -> list[dict[str, Any]]:
         self.storage.log("SYSTEM_DOCTOR", "Diagnostic started", payload={"probe_services": probe_services})
         reports = self.integration_hub().reports(probe_services=probe_services)
-        payload = [item.to_dict() for item in reports]
+        ruflo_report = self.ruflo_adapter().report()
+        payload = [ruflo_report.to_dict(), *[item.to_dict() for item in reports]]
         self.storage.log(
             "SYSTEM_DOCTOR",
             "Diagnostic completed",
-            payload={"operational": sum(item.operational for item in reports), "total": len(reports)},
+            payload={
+                "operational": sum(item.operational for item in reports) + int(ruflo_report.operational),
+                "total": len(reports) + 1,
+                "seven_phases": len(reports),
+                "meta_harness": "ruflo",
+            },
         )
         return payload
+
+    def ruflo_status(self) -> dict[str, Any]:
+        report = self.ruflo_adapter().report().to_dict()
+        self.storage.log("RUFLO", "Phase zero status checked", phase="ruflo", payload=report)
+        return report
+
+    def ruflo_init(self, *, execute: bool = False, wizard: bool = False) -> dict[str, Any]:
+        adapter = self.ruflo_adapter()
+        started = time.perf_counter()
+        try:
+            result = adapter.init_workspace(wizard=wizard, dry_run=not execute)
+            duration_ms = int((time.perf_counter() - started) * 1000)
+            if isinstance(result, tuple):
+                payload = {
+                    "phase": 0,
+                    "name": "ruflo",
+                    "execute": False,
+                    "workspace": str(adapter.workspace),
+                    "command": list(result),
+                    "duration_ms": duration_ms,
+                }
+            else:
+                payload = {
+                    "phase": 0,
+                    "name": "ruflo",
+                    "execute": True,
+                    "workspace": str(adapter.workspace),
+                    "duration_ms": duration_ms,
+                    **self._completed_payload(result),
+                }
+            self.storage.log(
+                "RUFLO",
+                "Ruflo initialized" if execute else "Ruflo init previewed",
+                phase="ruflo",
+                payload={"execute": execute, "workspace": str(adapter.workspace), "duration_ms": duration_ms},
+            )
+            return payload
+        except Exception as exc:
+            self.storage.log("RUFLO", str(exc), level="ERROR", phase="ruflo")
+            raise
 
     def run_mission(self, request: str) -> dict[str, Any]:
         text = request.strip()
@@ -268,6 +328,7 @@ class DesktopController:
         *,
         external_root: str | Path | None = None,
         comfyui_url: str | None = None,
+        ruflo_workspace: str | Path | None = None,
         dry_run_default: bool | None = None,
     ) -> dict[str, Any]:
         if external_root is not None:
@@ -279,6 +340,10 @@ class DesktopController:
             if not (url.startswith("http://") or url.startswith("https://")):
                 raise ValueError("ComfyUI URL must start with http:// or https://")
             self.storage.set_setting("comfyui_url", url)
+        if ruflo_workspace is not None:
+            workspace = Path(ruflo_workspace).expanduser().resolve()
+            workspace.mkdir(parents=True, exist_ok=True)
+            self.storage.set_setting("ruflo_workspace", str(workspace))
         if dry_run_default is not None:
             self.storage.set_setting("dry_run_default", bool(dry_run_default))
         self.storage.log("SETTINGS", "Settings updated")

@@ -1,0 +1,9 @@
+{
+  "name": "ruflo",
+  "repo": "ruvnet/ruflo",
+  "ref": "main",
+  "license": "MIT",
+  "role": "phase-zero-agent-meta-harness",
+  "integration": "external-npx",
+  "notes": "Ruflo remains optional and external. Olhos de Deus invokes official npx ruflo@latest commands without copying Ruflo source into the core. The seven existing phases remain unchanged."
+}
