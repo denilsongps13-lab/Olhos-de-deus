@@ -6,13 +6,16 @@ from typing import Any, Callable
 from PySide6.QtCore import QObject, QRunnable, Qt, QThreadPool, Signal, Slot
 from PySide6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDockWidget,
+    QFormLayout,
     QFrame,
     QHBoxLayout,
     QLabel,
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
+    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
@@ -117,6 +120,79 @@ class RufloPanel(QWidget):
         actions.addWidget(self.init_button)
         layout.addLayout(actions)
 
+        swarm_card = QFrame()
+        swarm_card.setObjectName("Card")
+        swarm_layout = QVBoxLayout(swarm_card)
+        swarm_layout.addWidget(QLabel("SWARM · COORDENAÇÃO MULTIAGENTE"))
+
+        swarm_note = QLabel(
+            "O comando swarm do Ruflo prepara e coordena agentes. O Ruflo não é tratado como se "
+            "sozinho executasse um modelo: execução autônoma real ainda depende do runtime de agente configurado."
+        )
+        swarm_note.setObjectName("Muted")
+        swarm_note.setWordWrap(True)
+        swarm_layout.addWidget(swarm_note)
+
+        form = QFormLayout()
+        self.topology = QComboBox()
+        self.topology.addItems([
+            "hierarchical",
+            "hierarchical-mesh",
+            "mesh",
+            "ring",
+            "star",
+            "hybrid",
+            "pheromone-adaptive",
+        ])
+        self.strategy = QComboBox()
+        self.strategy.addItems([
+            "development",
+            "specialized",
+            "balanced",
+            "adaptive",
+            "research",
+            "testing",
+            "optimization",
+            "maintenance",
+            "analysis",
+        ])
+        self.permissions = QComboBox()
+        self.permissions.addItems(["standard", "strict", "permissive"])
+        self.max_agents = QSpinBox()
+        self.max_agents.setRange(1, 15)
+        self.max_agents.setValue(7)
+        form.addRow("Topologia", self.topology)
+        form.addRow("Estratégia", self.strategy)
+        form.addRow("Permissões", self.permissions)
+        form.addRow("Máx. agentes", self.max_agents)
+        swarm_layout.addLayout(form)
+
+        self.objective = QPlainTextEdit()
+        self.objective.setMaximumHeight(90)
+        self.objective.setPlaceholderText("Objetivo do swarm. Ex.: analisar o projeto e propor correções com QA.")
+        swarm_layout.addWidget(self.objective)
+
+        swarm_actions_1 = QHBoxLayout()
+        self.swarm_preview = QPushButton("PREVIEW SWARM")
+        self.swarm_preview.setObjectName("SecondaryButton")
+        self.swarm_preview.clicked.connect(self.preview_swarm)
+        self.swarm_init = QPushButton("CRIAR SWARM")
+        self.swarm_init.setObjectName("PrimaryButton")
+        self.swarm_init.clicked.connect(self.confirm_swarm_init)
+        self.swarm_status = QPushButton("STATUS SWARM")
+        self.swarm_status.setObjectName("SecondaryButton")
+        self.swarm_status.clicked.connect(self.query_swarm_status)
+        swarm_actions_1.addWidget(self.swarm_preview)
+        swarm_actions_1.addWidget(self.swarm_init)
+        swarm_actions_1.addWidget(self.swarm_status)
+        swarm_layout.addLayout(swarm_actions_1)
+
+        self.swarm_start = QPushButton("COORDENAR OBJETIVO COM RUFLO")
+        self.swarm_start.setObjectName("PrimaryButton")
+        self.swarm_start.clicked.connect(self.confirm_swarm_start)
+        swarm_layout.addWidget(self.swarm_start)
+        layout.addWidget(swarm_card)
+
         self.output = QPlainTextEdit()
         self.output.setReadOnly(True)
         self.output.setPlaceholderText("Status, comando e saída do Ruflo aparecerão aqui.")
@@ -124,7 +200,7 @@ class RufloPanel(QWidget):
 
         safety = QLabel(
             "Execução real só ocorre após confirmação. O Olhos de Deus usa argumentos separados, "
-            "timeout e subprocess sem shell=True."
+            "allowlists, timeout e subprocess sem shell=True."
         )
         safety.setObjectName("Muted")
         safety.setWordWrap(True)
@@ -134,9 +210,16 @@ class RufloPanel(QWidget):
 
     def _set_busy(self, busy: bool) -> None:
         self._busy = busy
-        self.refresh_button.setEnabled(not busy)
-        self.preview_button.setEnabled(not busy)
-        self.init_button.setEnabled(not busy)
+        for button in (
+            self.refresh_button,
+            self.preview_button,
+            self.init_button,
+            self.swarm_preview,
+            self.swarm_init,
+            self.swarm_status,
+            self.swarm_start,
+        ):
+            button.setEnabled(not busy)
         if busy:
             self.status.setText("EXECUTANDO")
             self.status.setObjectName("Pending")
@@ -162,6 +245,22 @@ class RufloPanel(QWidget):
             self.status.style().unpolish(self.status)
             self.status.style().polish(self.status)
             self.detail.setText(str(payload.get("detail", "")))
+
+    @staticmethod
+    def _completed_payload(result) -> dict[str, Any]:
+        return {
+            "returncode": result.returncode,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+        }
+
+    def _swarm_options(self) -> dict[str, Any]:
+        return {
+            "topology": self.topology.currentText(),
+            "max_agents": self.max_agents.value(),
+            "strategy": self.strategy.currentText(),
+            "permissions": self.permissions.currentText(),
+        }
 
     def refresh_status(self) -> None:
         payload = self.controller.ruflo_status()
@@ -189,6 +288,109 @@ class RufloPanel(QWidget):
         self._run_async(
             lambda: self.controller.ruflo_init(execute=True, wizard=self.wizard.isChecked())
         )
+
+    def preview_swarm(self) -> None:
+        adapter = self.controller.ruflo_adapter()
+        command = adapter.init_swarm(dry_run=True, **self._swarm_options())
+        self.output.setPlainText(
+            json.dumps(
+                {
+                    "phase": 0,
+                    "name": "ruflo",
+                    "action": "swarm-init-preview",
+                    "execute": False,
+                    "command": list(command),
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+
+    def confirm_swarm_init(self) -> None:
+        if self._busy:
+            return
+        answer = QMessageBox.question(
+            self,
+            "Criar swarm Ruflo",
+            "Isso criará a topologia de coordenação do Ruflo no workspace usando as opções exibidas. Continuar?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        def execute() -> dict[str, Any]:
+            result = self.controller.ruflo_adapter().init_swarm(dry_run=False, **self._swarm_options())
+            self.controller.storage.log(
+                "RUFLO",
+                "Ruflo swarm initialized",
+                phase="ruflo",
+                payload=self._swarm_options(),
+            )
+            return {
+                "phase": 0,
+                "name": "ruflo",
+                "action": "swarm-init",
+                "execute": True,
+                **self._completed_payload(result),
+            }
+
+        self._run_async(execute)
+
+    def query_swarm_status(self) -> None:
+        def execute() -> dict[str, Any]:
+            result = self.controller.ruflo_adapter().swarm_status(dry_run=False)
+            return {
+                "phase": 0,
+                "name": "ruflo",
+                "action": "swarm-status",
+                "execute": True,
+                **self._completed_payload(result),
+            }
+
+        self._run_async(execute)
+
+    def confirm_swarm_start(self) -> None:
+        if self._busy:
+            return
+        objective = self.objective.toPlainText().strip()
+        if not objective:
+            QMessageBox.warning(self, "Ruflo", "Digite um objetivo para o swarm.")
+            return
+        answer = QMessageBox.question(
+            self,
+            "Coordenar objetivo",
+            "O Ruflo preparará/coordenará o swarm para este objetivo. Isso não significa que um modelo externo "
+            "foi executado com sucesso; o resultado exibirá exatamente o retorno real do Ruflo. Continuar?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        strategy = self.strategy.currentText()
+
+        def execute() -> dict[str, Any]:
+            result = self.controller.ruflo_adapter().start_swarm(
+                objective,
+                strategy=strategy,
+                dry_run=False,
+            )
+            self.controller.storage.log(
+                "RUFLO",
+                "Ruflo swarm objective coordinated",
+                phase="ruflo",
+                payload={"objective": objective, "strategy": strategy},
+            )
+            return {
+                "phase": 0,
+                "name": "ruflo",
+                "action": "swarm-start",
+                "execute": True,
+                "objective": objective,
+                **self._completed_payload(result),
+            }
+
+        self._run_async(execute)
 
     def _run_async(self, function: Callable[[], Any]) -> None:
         self._set_busy(True)
@@ -218,7 +420,7 @@ def install_ruflo_dock(window, controller: DesktopController) -> QDockWidget:
     dock = QDockWidget("Fase 0 · Ruflo", window)
     dock.setObjectName("RufloPhaseZeroDock")
     dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
-    dock.setMinimumWidth(340)
+    dock.setMinimumWidth(380)
     dock.setWidget(RufloPanel(controller, dock))
     window.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
 

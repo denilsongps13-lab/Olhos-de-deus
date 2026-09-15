@@ -4,7 +4,7 @@ Central modular para agentes de IA, automacao, analise de codigo, QA e workflows
 
 ## Estado
 
-Versao atual: **0.6.0**.
+Versao atual: **0.6.1**.
 
 Ja existe:
 - aplicativo desktop nativo para Windows com PySide6;
@@ -12,6 +12,8 @@ Ja existe:
 - central de missoes ligada ao orquestrador;
 - telas das sete integracoes, System Doctor, logs e configuracoes;
 - **Ruflo como Fase 0 opcional / meta-harness**, sem substituir as sete fases;
+- painel Ruflo no Windows com inicializacao, diagnostico e controles de swarm multiagente;
+- topologia, estrategia, permissoes, limite de agentes, preview e status real do swarm;
 - persistencia local SQLite em `%LOCALAPPDATA%\OlhosDeDeus`;
 - suporte a bandeja do Windows e splash screen;
 - build com PyInstaller e instalador com Inno Setup;
@@ -46,9 +48,11 @@ olhos-de-deus-desktop
 
 ## Fase 0 — Ruflo
 
-O projeto `ruvnet/ruflo` entra como **meta-orquestrador opcional**. Ele fica por cima do Olhos de Deus para coordenar agentes, MCP, memoria e workflows quando configurado, mas **as sete fases continuam independentes**.
+O projeto `ruvnet/ruflo` entra como **meta-orquestrador opcional**. Ele fica por cima do Olhos de Deus para coordenar agentes, swarms, MCP, memoria e workflows quando configurado, mas **as sete fases continuam independentes**.
 
-O codigo do Ruflo nao e copiado para o nucleo. O adapter usa os comandos oficiais via `npx`, sem `shell=True`, e nunca instala nada silenciosamente.
+O codigo do Ruflo nao e copiado para o nucleo. O adapter usa os comandos oficiais via `npx`, sem `shell=True`, e nunca instala nada silenciosamente. O painel Windows pede confirmacao antes de qualquer execucao real.
+
+O swarm da v0.6.1 permite preparar e coordenar equipes de agentes com topologia, estrategia e permissoes controladas. O Olhos de Deus mostra o retorno real do Ruflo e **nao confunde coordenacao do swarm com execucao concluida de um LLM**; para autonomia efetiva ainda e necessario configurar um runtime de agente/modelo suportado.
 
 Comandos principais:
 
@@ -131,7 +135,8 @@ olhos-de-deus phase artemis "Open Settings"
 ## Estrutura
 
 - `olhos_de_deus/` — nucleo executavel, CLI e adapters
-- `olhos_de_deus/ruflo.py` — adapter externo da Fase 0
+- `olhos_de_deus/ruflo.py` — adapter externo da Fase 0 e comandos seguros de swarm
+- `olhos_de_deus/desktop/ruflo_panel.py` — painel visual da Fase 0 no Windows
 - `olhos_de_deus/desktop/` — interface Windows, controller e persistencia
 - `packaging/windows/` — build do executavel e geracao do icone
 - `installer/` — projeto do instalador Inno Setup
