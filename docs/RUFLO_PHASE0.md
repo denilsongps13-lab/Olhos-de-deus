@@ -8,6 +8,7 @@ O Ruflo (`ruvnet/ruflo`, MIT) entra no Olhos de Deus como **meta-harness opciona
 Usuario
   -> Olhos de Deus
     -> Ruflo (fase 0 / meta-harness)
+      -> swarm / coordenacao multiagente
       -> fases 1..7
       -> agentes
       -> memoria / MCP / workflows do Ruflo quando configurados
@@ -19,13 +20,16 @@ As sete fases continuam sendo Graphify, ComfyUI, Spec Kit, QA Skills, Output Pro
 
 O codigo do Ruflo nao e copiado para o nucleo. O adapter `olhos_de_deus.ruflo.RufloAdapter` usa os comandos oficiais via `npx` e executa subprocessos sem `shell=True`.
 
-Nenhuma instalacao acontece silenciosamente. `init` e dry-run por padrao no CLI e no controller desktop.
+Nenhuma instalacao acontece silenciosamente. Inicializacao e comandos de swarm usam dry-run/preview quando aplicavel e a interface pede confirmacao antes da execucao real.
+
+Entradas de topologia, estrategia e permissoes usam allowlists. O objetivo do swarm e passado como um unico argumento de subprocesso, nunca como texto de shell.
 
 ## Requisitos
 
 - Node.js
 - `npx`
 - acesso ao npm apenas quando o usuario escolher executar Ruflo de verdade
+- runtime de agente/LLM configurado separadamente para execucao autonoma real
 
 ## CLI
 
@@ -65,6 +69,21 @@ Consultar a versao via `npx`:
 olhos-de-deus ruflo probe --workspace . --execute
 ```
 
+## Swarm no Windows
+
+A v0.6.1 adiciona controles visuais para:
+
+- escolher topologia (`hierarchical`, `mesh`, `ring`, `star`, `hybrid`, `hierarchical-mesh`, `pheromone-adaptive`);
+- escolher estrategia;
+- escolher preset de permissoes;
+- limitar a quantidade de agentes (1 a 15 no Olhos de Deus);
+- visualizar o comando antes de executar;
+- criar a topologia de swarm;
+- consultar o estado real do swarm;
+- coordenar um objetivo via `ruflo swarm start`.
+
+O painel mostra stdout/stderr reais e nao marca a execucao de um LLM como concluida apenas porque o Ruflo criou/coordenou o swarm. Segundo a arquitetura do Ruflo, a execucao efetiva do modelo depende do runtime/agente configurado (por exemplo Claude Code/Codex ou outro mecanismo suportado).
+
 ## System Doctor
 
 O doctor tradicional continua reportando exatamente as sete fases. Para acrescentar a fase 0:
@@ -82,8 +101,8 @@ O adapter considera o Ruflo `READY` quando:
 1. `node` e `npx` estao disponiveis; e
 2. o workspace possui `.claude-flow`, criado pela inicializacao do Ruflo.
 
-Isso evita mostrar sucesso falso apenas porque Node.js esta instalado.
+O estado de swarm e detectado separadamente por `.swarm/state.json`. Isso evita mostrar sucesso falso apenas porque Node.js esta instalado.
 
-## Proximos passos
+## Limite atual
 
-A v0.6 estabelece o boundary seguro, diagnostico e inicializacao. A delegacao real de missoes ao Ruflo/MCP deve ser adicionada somente apos validar os comandos e o ciclo de vida do servidor no Windows, sem transformar texto do usuario diretamente em comando de shell.
+A v0.6.1 implementa o boundary seguro, diagnostico, inicializacao e coordenacao de swarm. O proximo passo para autonomia completa e ligar um runtime de agente/LLM suportado e gerenciar seu ciclo de vida sem transformar texto do usuario diretamente em comando de shell.
